@@ -1,3 +1,5 @@
-Git Best Practices
+## Git Best Practices
 
-Weitere Infos: [Hier](https://git.smartfactory.de/wiki/bestpractices/-/wikis/home)
+Welcome to the Git Best Practices Page.
+
+You can find all the documentation to this under the Wiki Page of this Project or [Here](https://git.smartfactory.de/wiki/bestpractices/-/wikis/home)
