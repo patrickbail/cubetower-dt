@@ -18,19 +18,13 @@ Issues are going through a lifecycle - similar to tasks in a sprint.
 
 ![image](./images/issue_lifecycle.png)
 
-When an issue is created, it is queued with other issues with respect to its priority. 
-
-Once a person starts working on it, it is considered to be in progress. 
-
-Before deploying a finished task it has to be tested and modified if testing showed flaws in the product. 
-
-If the product was tested it has to be integrated to make sure that there are no side-effects to other system parts. 
-
-Before closing an issue, it has to be documented. Note that the documentation should consist out of the most relevant information. A minimum requirement for this task to define the author of the product.
-
-During the entire process it is possible that an issue is rejected, because it falls out of scope of the sprint/product goal, is too hard/complex to achieve or because it becomes deprecated in any other way. If an issue is rejected it can be closed. In some cases it might be a good idea to document the reason of rejection to avoid similar mistakes in the future.
-
-When an issue is done, it can be closed. Closed issues can still be reviewed for future decisions and can therefore be used as basis for upcomming iterations.
+* When an issue is created, it is queued with other issues with respect to its priority. 
+* Once a person starts working on it, it is considered to be in progress. 
+* Before deploying a finished task it has to be tested and modified if testing showed flaws in the product. 
+* If the product was tested it has to be integrated to make sure that there are no side-effects to other system parts. 
+* Before closing an issue, it has to be documented. Note that the documentation should consist out of the most relevant information. A minimum requirement for this task to define the author of the product.
+* During the entire process it is possible that an issue is rejected, because it falls out of scope of the sprint/product goal, is too hard/complex to achieve or because it becomes deprecated in any other way. If an issue is rejected it can be closed. In some cases it might be a good idea to document the reason of rejection to avoid similar mistakes in the future.
+* When an issue is done, it can be closed. Closed issues can still be reviewed for future decisions and can therefore be used as basis for upcomming iterations.
 
 # *Labels*
 
