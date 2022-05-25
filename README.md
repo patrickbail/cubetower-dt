@@ -11,7 +11,8 @@ Feel free to make adjustments to fit the needs of your project.
 
 ### How to Markdown
 
-Are you new to Markdown. See [How to Markdown](markdown.md)
+Are you new to Markdown. 
+See this external source: [How to Markdown](https://www.markdownguide.org/basic-syntax/)
 
 ### Branching
 
