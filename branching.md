@@ -1,7 +1,7 @@
 [TOC]
 
-
 # Branching
+
 Branching is an important aspect of every git projects. It allows to control different versions of your code. As one of a main purpose for our git workflow is to have certainty about stable code products, while being able to maintain an agile software development process, we are using a [Gitflow Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) branching model. The idea of this branching approach is, to ensure that the main branch is always holding a stable version of the complete software system that is under development. Features are built from development branch, and later released into the main branch. 
 
 ## Basic Workflow Concept 
@@ -23,25 +23,7 @@ For each release, a *Release* branch is used to avoid side effects from changes 
 *Feature*
 A *Feature* branch is created for each feature that has to be created for a system. The repective branch is created from the current state in the dev branch.
 
-
-## Advanced Concept: Nested Projects (WIP)
-
-Sometimes it is convinient to reference a project instead of copying it's content. This can become handy when your project evolves as well as the project you referred to in your repository. Instead of copying the progress each and every time one can reference the project - or a certain commit. 
-
-![image](/images/nested_branching.png)
-
-
-
-
-
-
-
-
-
-
-
-
-
+## Working with branches
 
 *Step 1: Make sure your project is up-to-date*
 ----------------
@@ -50,7 +32,6 @@ Before creating a new branch, ensure that the project is on the latest version b
 
     :::git CLI
     git pull
-
 
 *Step 2: go to development branch*
 ----------------
@@ -65,17 +46,13 @@ To work on the development branch, the command would be
     :::git CLI
     git checkout development
 
-
 *Step 3: create a new branch*
 ----------------
-
 
 Creating a new branch can be done via the git webpage or as a command in git:
 
     :::git CLI
     git checkout -b <new-branch-name>
-
-
 
 *Step 4: Update remote repository*
 ----------------
@@ -85,11 +62,7 @@ When pushing the first time on your new branch, you'll have to create a connecti
     :::git CLI
     git push--set-upstream origin <new-branch-name>
 
-
-
-
 After your branch is established on the remote end you can simply use
-
 
     :::git CLI
     git push
