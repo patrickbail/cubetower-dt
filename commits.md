@@ -1,5 +1,3 @@
-[TOC]
-
 ## Commits and Publications
 
  - Commits: 
