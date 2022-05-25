@@ -6,7 +6,7 @@ Branching is an important aspect of every git projects. It allows to control dif
 
 ## Basic Workflow Concept 
 
-![image](/images/branching.png)
+![image](./images/branching.png)
 
 *Main*
 
