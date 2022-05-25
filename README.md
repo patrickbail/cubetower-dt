@@ -1,7 +1,8 @@
 ## 📜 Welcome to Wiki
 
 This Wiki contains guidelines, tutorials and templates.   
-The content helps in creating and managing your projects by recommending strategies for workflows, documentation, tools and approaches.
+The content helps in creating and managing your projects  
+by recommending strategies for workflows, documentation, tools and approaches.
 
 Feel free to make adjustments to fit the needs of your project.
 
