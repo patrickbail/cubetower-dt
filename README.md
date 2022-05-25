@@ -11,24 +11,30 @@ Feel free to make adjustments to fit the needs of your project.
 
 ### How to Markdown
 
-Are you new to Markdown. 
+Are you new to Markdown.  
 See this external source: [How to Markdown](https://www.markdownguide.org/basic-syntax/)
 
 ### Branching
 
-Branching helps a team, to work on different tasks in the various stages of a project. This section summarizes branching methods. See [Branching](branching.md)
+Branching helps a team, to work on different tasks in the various stages of a project.  
+This section summarizes branching methods. See [Branching](branching.md)
 
 ### Issues
 
-Issues help to track your work. This section guides issue management and issue life cycles. See [Issues](issues.md)
+Issues help to track your work.  
+This section guides issue management and issue life cycles. See [Issues](issues.md)
 
 ### Commits & Publishing
 
-When to commit our progress, publish or push them to the remote branch? Which syntax should commits have or how to link commits to an issue? See [Commits](commits.md)
+When to commit our progress, publish or push them to the remote branch?   
+Which syntax should commits have or how to link commits to an issue?   
+See [Commits](commits.md)
 
 ### Labels
 
-Labels help to keep track the status of any issue or pull request. How to create meaningful labels in your project. We propose an labeling method based on the project life cycle. See [Labels](labels.md).  
+Labels help to keep track the status of any issue or pull request.   
+How to create meaningful labels in your project.   
+We propose an labeling method based on the project life cycle. See [Labels](labels.md).
 
 ## 📚 Templates
 
@@ -51,4 +57,6 @@ See [Roles](rollen.md)
 ## 💡 Advanced Tools and Practices
 
 ### Git-Ignore File
-Gitignore files come useful when you do not want to commit or version certain files or documents which are rather huge in size or only necessary for the local execution of the project. Use own or prepared `gitignore` files to accomplish this. See [Gitignore File Collection](https://github.com/github/gitignore)
+Gitignore files come useful when you do not want to commit or version certain files or documents which are rather huge in size or only necessary for the local execution of the project.   
+Use own or prepared `gitignore` files to accomplish this.  
+See [Gitignore File Collection](https://github.com/github/gitignore)
