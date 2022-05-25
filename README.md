@@ -3,20 +3,7 @@ This Wiki contains several universal guidelines, tutorials and templates, useful
 
 The provided contents here can be considered as guidelines or templates for your project development. Feel free to make adjustments to fit the needs of your project. However, adaptability has its limits and stops at a basic standard. These basic standards are crucial to build a foundation on which you can specify your project.
 ##
-### 📝 Table of Contents
-- 📖 [Basic Git Guidelines](#basic_guidelines)
-  - [How to Markdown](#how_to_markdown)
-  - [Branching](#branching)
-  - [Issues](#issues)
-  - [Commits](#commits)
-  - [Labels](#labels)
-- 📚 [Templates](#templates) 
-  - [Readme](#readme)
-- ⚙️ [General Infos](#general_infos)
-- 💡 [Advanced Tools and Practices](#recommended_tools_services)
-  - [Git-Ignore](#gitignore)
-  - [Software Patterns](#software_patterns)
-- 🛠️ [Under Construction](#under_construction)
+[TOC]
 
 ## 📖 Basic Git Guidelines <a name = "basic_guidelines"></a> 
 
