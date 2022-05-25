@@ -51,13 +51,3 @@ Gitignore files come useful when you do not want to commit or version certain fi
 
 - ### [Software Patterns](Software-Patterns) <a name = "software_patterns"></a> 
 Here is some general information on the two of the mostly used software patterns. The Wikipedia links are given [here](Software-Patterns) for your further reading.
-##
-
-
-##
-
-### 🛠️ [Under Construction](Git Guidelines/Under Development) <a name = "under_construction"></a> 
-
-The sections given [here](Git Guidelines/Under Development) are under development and therefore not included in the Wiki at the moment. 
-
-#
