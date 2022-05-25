@@ -1,18 +1,12 @@
-## Table of Contents:
-- [Branching](#branching)
-- [Basic Workflow Concept](#basic_workflow)
-- [Advanced Concept: Nested Projects](#advanced_concept)
+[TOC]
 
 
-Branching<a name = "branching"></a> 
-=========
-
+# Branching
 Branching is an important aspect of every git projects. It allows to control different versions of your code. As one of a main purpose for our git workflow is to have certainty about stable code products, while being able to maintain an agile software development process, we are using a [Gitflow Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) branching model. The idea of this branching approach is, to ensure that the main branch is always holding a stable version of the complete software system that is under development. Features are built from development branch, and later released into the main branch. 
 
-*Basic Workflow Concept* <a name = "basic_workflow"></a> 
-----------------
+## Basic Workflow Concept 
 
-![image](uploads/eeebb6b053ccb305cf00e7bfd2266d4b/image.png)
+![image](/images/branching.png)
 
 *Main*
 
@@ -30,12 +24,11 @@ For each release, a *Release* branch is used to avoid side effects from changes 
 A *Feature* branch is created for each feature that has to be created for a system. The repective branch is created from the current state in the dev branch.
 
 
-*Advanced Concept: Nested Projects (WIP)*<a name = "advanced_concept"></a> 
-----------------
+## Advanced Concept: Nested Projects (WIP)
 
 Sometimes it is convinient to reference a project instead of copying it's content. This can become handy when your project evolves as well as the project you referred to in your repository. Instead of copying the progress each and every time one can reference the project - or a certain commit. 
 
-![image](uploads/8755216ef762241ed166361a16d12322/image.png)
+![image](/images/nested_branching.png)
 
 
 
