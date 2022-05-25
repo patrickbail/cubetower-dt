@@ -1,4 +1,4 @@
-## Vorschlag der Blaupause: Allgemein​
+## Vorgehen Gitlab Nutzung
 #
 
 1. SF Gitlab (git.smartfactory.de, gehostet beim DFKI, Server dfki-3016.dfki.de) wird der möglichst einzige Ort für interne Projekte und Arbeitsversionen​
