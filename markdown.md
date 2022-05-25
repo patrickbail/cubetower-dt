@@ -3,19 +3,7 @@
 ## :tada: Making the Most out of Markdown Language
 Here is a brief overview in using the Markdown language in making your documentation easier and efficient. 
 
-## Table of Contents
-- [Text Formatting](#textformatting)
-- [Creating Table](#creatingTable)
-- [Fenced Code Blocks](#fencedCode)
-- [Footnotes](#footnotes)
-- [Heading IDs](#headinglD)
-- [Linking to Headings](#headinglinking)
-- [Strike Through Texts](#strikethorugh)
-- [List of Tasks](#taskLists)
-- [Emojis](#emojis)
-- [URL Linking](#urlLinking)
-- [References](#reference)
-
+[TOC]
 #
 ### Text Formatting <a name="textformatting"></a>
 
