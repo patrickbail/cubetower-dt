@@ -49,5 +49,3 @@ Here are some of the useful tools and practices for optimizing your projects.
 - ### Git-Ignore File  <a name = "gitignore"></a> 
 Gitignore files come useful when you do not want to commit or version certain files or documents which are rather huge in size or only necessary for the local execution of the project. These documents can be specified in the `gitignore` file and can be omitted/ignored from the project. Here is a collection of such gitignore files for your reference: [Gitignore File Collection](https://github.com/github/gitignore)
 
-- ### [Software Patterns](Software-Patterns) <a name = "software_patterns"></a> 
-Here is some general information on the two of the mostly used software patterns. The Wikipedia links are given [here](Software-Patterns) for your further reading.
