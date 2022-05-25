@@ -1,5 +1,3 @@
-## :memo: Table of Contents
-
 [TOC]
 
 ## :bulb: Overview 
