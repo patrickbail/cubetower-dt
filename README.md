@@ -57,6 +57,7 @@ See [Roles](rollen.md)
 ## 💡 Advanced Tools and Practices
 
 ### Git-Ignore File
-Gitignore files come useful when you do not want to commit or version certain files or documents which are rather huge in size or only necessary for the local execution of the project.   
+Gitignore files come useful when you do not want to commit or version certain files or documents,  
+which are rather huge in size or only necessary for the local execution of the project.   
 Use own or prepared `gitignore` files to accomplish this.  
 See [Gitignore File Collection](https://github.com/github/gitignore)
