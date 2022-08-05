@@ -8,8 +8,7 @@ There are many methods of label strategies. For easy understanding and better fo
 
 ## Recommended Labels 
 
-The following are the recommend group of labels and already 
-implemented in this [wiki](https://git.smartfactory.de/wiki/bestpractices/-/labels).
+The following are the recommend group of labels:
 
 ### State or Status labels 
 
@@ -31,7 +30,7 @@ Introducing priority labels to a project can sometimes make every event/issue su
 
 ### :wrench: Managing Labels 
 
-The labels can be managed under the section [ `Project Information -> Labels` ](https://git.smartfactory.de/wiki/bestpractices/-/labels)
+The labels can be managed under the section `Project Information -> Labels`
 
 ### :books: References 
 
