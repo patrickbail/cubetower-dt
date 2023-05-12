@@ -1,20 +1,6 @@
 # Running standalone Isaac Sim Python scripts in Visual Studio Code
 ## Setup
-### Prerequisites
-* [Omniverse Isaac Sim 2022.1.1](https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/install_workstation.html)
-* [Visual Studio Code](https://code.visualstudio.com/)
-### 1. Clone repository
-* Linux
-```
-cd ~
-git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-Sim-Playground.git
-```
-* Windows
-```
-cd %USERPROFILE%
-git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-Sim-Playground.git
-```
-### 2. Patch Isaac Sim 2022.1.1 .vscode directory
+### Patch Isaac Sim 2022.1.1 .vscode directory
 Copy over the provided `.vscode` directory into the Isaac Sim `.vscode` directory
 * Linux
 ```
