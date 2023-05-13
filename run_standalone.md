@@ -23,8 +23,8 @@ More details about the pre-configured enviroment can be looked up at the [Omnive
 If Assets need to be loaded fron the Omniverse API, then an access to a Nucleus database, either a connection to the local Nucleus service or a remote one, has to be established (Can be done by starting the Omniverse Launcher). Only then Assets, like a ground plane and more, can be found and loaded into the simulation.
 
 Run a standalone Isaac Sim Python script via:
-* Linux `./python.sh [PATH]/[PYTHON_SCRIPT].py`
-* Windows `./python.bat [PATH]\[PYTHON_SCRIPT].py`
+* Linux `./python.sh <path_to_python_script>`
+* Windows `./python.bat <path_to_python_script>`
 
 To test if it works, try running: 
 * Linux

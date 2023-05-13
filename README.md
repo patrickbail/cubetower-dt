@@ -18,6 +18,6 @@ git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-S
 ```
 
 ## Further instructions
-1. See [Run Standalone](run_standalone.md) for running and working on standalone Isaac Sim python scripts with Visual Studio Code
-2. See [Virtual Lab Run](virtual_lab_run.md) to simulate a real-world scenario and to generate synthetic data
-3. See [Extratcing Data](extracting_data.md) for instructions on how to build ROS2 foxy on your system and how to extract recorded data
+1. See [Run Standalone](run_standalone.md) for instructions on how to run and work on standalone Isaac Sim python scripts with Visual Studio Code
+2. See [Virtual Lab Run](virtual_lab_run.md) for instructions on how to simulate a real-world scenario and how to generate synthetic data
+3. See [Extratcing Data](extracting_data.md) for instructions on how to build ROS2 Foxy on your system and how to extract recorded data

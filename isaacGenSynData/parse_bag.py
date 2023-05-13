@@ -15,7 +15,7 @@ from sensor_msgs import point_cloud2
 #ROS2 has to be build on the systen, follow installation steps: https://docs.ros.org/en/foxy/Installation/Alternatives/Ubuntu-Development-Setup.html
 #Follow the steps to install cv_bridge https://github.com/ros-perception/vision_opencv/tree/rolling/cv_bridge
 #Setup the ROS2 enviroment first before running the script via: . ~/ros2_foxy/install/local_setup.bash
-#~/ros2_foxy/install/sensor_msgs/lib/python3.8/site-packages/sensor_msgs point_cloud2.py
+# point_cloud2.py in ~/ros2_foxy/install/sensor_msgs/lib/python3.8/site-packages/sensor_msgs
 
 #bag_file = 'zed_kuba_1_0.db3'
 #bag_file = '../lidar_kuba_1/lidar_kuba_1_0.db3'

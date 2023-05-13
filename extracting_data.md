@@ -1,8 +1,8 @@
-# Building ROS2 foxy and extracting data from ROS/ROS2 bags
+# Building ROS2 Foxy and extracting data from ROS/ROS2 bags
 ## Setup
-### Build ROS2 foxy on Linux
-ROS2 foxy and cv_bridge have to be build/installed on the system. \
-Execute the ```build_ros2.sh``` script to build ROS2 foxy and cv_bridge on your Linux system.
+### Build ROS2 Foxy on Linux
+ROS2 Foxy and cv_bridge have to be build/installed on the system. \
+Execute the ```build_ros2.sh``` script in the install directory to build ROS2 Foxy and cv_bridge on your Linux system.
 You can also build or install ROS2 on your own, although this is not recommended. \
 Before running anything that uses ROS2, setup the ROS2 enviroment first via:
 ```
@@ -15,7 +15,7 @@ This can be done with `parse_bag.py` by specifying which bag and what data from 
 
 Parse a bag file with a specific topic via:
 ```
-./parse_bag.py -b [PATH_TO_BAG] -t [TOPIC_NAME]
+./parse_bag.py -b <path_to_bag> -t <topic_name> [-n] [-v] [-e]
 ```
 This will create a .json file and in case of image or pointcloud data, .img/.ply files will be saved in their respective output directories `raw_img`/`raw_pcd`
 
@@ -29,5 +29,5 @@ The following arguments can be used:
 * -b | --bag: Path to ROS/ROS2 bag file that will be parsed
 * -t | --topic: Name of topic from which data should be extracted
 * -n | --name: If specified, name of the outgoing saved .png or .ply files will be changed
-* -v | --visualize_path: If specified, pathmap will be visualized
+* -v | --visualize_path: If specified, path will be visualized if topic is of type Path or PoseStamped
 * -e | --export_to_json: If specified, file will not be exported to json

@@ -18,15 +18,15 @@ Simulating the real-world scenario can be done by running the python script like
 Run a simulation via:
 * Linux
 ```
-./python.sh ./lab_run/virtual_lab_run.py -p [PATH] (-i [PATH]) (-l) (-s)
+./python.sh ./isaacGenSynData/virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
 ```
 * Windows
 ```
-./python.bat .\lab_run\virtual_lab_run.py -p [PATH] (-i [PATH]) (-l) (-s)
+./python.bat .\isaacGenSynData\virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
 ```
 
 Arguments:
-* -p | --path: A .json file that specifys the path the robot takes. Extracted path or pose data generated from `parse_bag.py` belongs here
-* -s | --interpolate: If provided a .json file of recorded image or pointcloud data with timestamps then interpolate missing poses. Extracted data generated from `parse_bag.py` belongs here
+* -p | --path: A .json file that specifies the path the robot takes. Extracted path or pose data generated from `parse_bag.py` belongs here
+* -i | --interpolate: If provided a .json file of recorded image or pointcloud data with timestamps then interpolate missing poses. Extracted data generated from `parse_bag.py` belongs here
 * -l | --lidar: If specified, a lidar scan will be done and a registered pointcloud will be saved in `_out_pcd`
 * -s | --stereo: If specified, a scan with stereo vision will be done and images at every step will be saved in `_out_annot` 
