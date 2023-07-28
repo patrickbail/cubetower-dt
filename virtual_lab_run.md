@@ -11,7 +11,7 @@ cp -RT ~/Isaac-Sim-Playground/isaacGenSynData $ISAAC_SIM
 set ISAAC_SIM="%LOCALAPPDATA%\ov\pkg\isaac_sim-2022.1.1"
 copy /Y /I %USERPROFILE%\Isaac-Sim-Playground\isaacGenSynData %ISAAC_SIM%\isaacGenSynData
 ```
-The `isaacGenSynData` directory contains `parse_bag.py`, `virtual_lab_run.py` and two USD files `acoposobj_scaled.usd` and `ZED2_scaled.usd` for the virtual enviroment, which need to be in the same directory as `virtual_lab_run.py`.
+The `isaacGenSynData` directory contains `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and two USD files `acoposobj_scaled.usd` and `ZED2_scaled.usd` for the virtual enviroment, which need to be in the same directory as `virtual_lab_run.py`. The two USD files `acoposobj_scaled.usd` and `ZED2_scaled.usd` can also be put into the local or remote Nucleus server, however the `virtual_lab_run.py` script has to be modified. In addition, a file `lerp_test.json` is provided as a template for testing linear interpolation between two points, if a path is not needed for the simulation.
 
 ## Start a Virtual Lab Run and generate synthetic data
 Simulating the real-world scenario can be done by running the python script like every other standalone Isaac Sim python script, which was demonstraed in the [Run Standalone](run_standalone.md) section. \
@@ -29,4 +29,6 @@ Arguments:
 * -p | --path: A .json file that specifies the path the robot takes. Extracted path or pose data generated from `parse_bag.py` belongs here
 * -i | --interpolate: If provided a .json file of recorded image or pointcloud data with timestamps then interpolate missing poses. Extracted data generated from `parse_bag.py` belongs here
 * -l | --lidar: If specified, a lidar scan will be done and a registered pointcloud will be saved in `_out_pcd`
-* -s | --stereo: If specified, a scan with stereo vision will be done and images at every step will be saved in `_out_annot` 
+* -s | --stereo: If specified, a scan with stereo vision will be done and images at every step will be saved in `_out_image` 
+* -L | --lerp: If specified, a linear interpolation between two poses will be done, instead of using the path provided via the -p argument
+* -E | --early_stopping: If specified a value, simulation will be stopped early according to the provided value
