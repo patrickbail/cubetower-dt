@@ -1,20 +1,34 @@
 from omni.isaac.kit import SimulationApp
 config = {
-     'window_width': "1280",
-     'window_height': "720",
-     'headless': False,
+    "headless": True,
+    "active_gpu": None,
+    "physics_gpu": 0,
+    "multi_gpu": True,
+    "sync_loads": True,
+    "width": 1280,
+    "height": 720,
+    "window_width": 1440,
+    "window_height": 900,
+    "display_options": 3094,
+    "subdiv_refinement_level": 0,
+    "renderer": "RayTracedLighting",  # Can also be PathTracing
+    "anti_aliasing": 3, # DLSS
+    "samples_per_pixel_per_frame": 64,
+    "denoiser": True,
+    "max_bounces": 4,
+    "max_specular_transmission_bounces": 6,
+    "max_volume_bounces": 4,
+    "open_usd": None,
+    "livesync_usd": None,
 }
 simulation_app = SimulationApp(config)
 
 #python
 import os
-import pptk
-import copy
 import argparse
 import numpy as np
-import open3d as o3d
 from threading import Thread
-from lab_utility import create_camera, rotate_camera, set_pose, load_data, save_rgb
+from lab_utility import create_camera, rotate_camera, set_pose, load_data, save_rgb, save_pcd
 
 #isaac-core
 from omni.isaac.core import World
@@ -30,14 +44,17 @@ from omni.replicator.core import AnnotatorRegistry
 from pxr import Usd, UsdGeom, Gf, UsdShade, Sdf, Semantics, UsdPhysics
 
 class LabRun():
-    def __init__(self, file_path, interpolate = None, isLidar = False, isStereo = False) -> None:
+    def __init__(self, file_path, interpolate = None, isLidar = False, isStereo = False, isLerp = False, earlyStopping = -1) -> None:
+        self.DEBUG = False
         self._world = None
         self._stage = None
         self._current_tasks = None
         self._world_settings = {"physics_dt": 1.0 / 60.0, "stage_units_in_meters": 1.0, "rendering_dt": 1.0 / 60.0}
         self._isLidar = isLidar
         self._isStereo = isStereo
-        self._i = 0
+        self._isLerp = isLerp
+        self._earlyStopping = earlyStopping
+        self._i = 0 # Time step index
         self._camera_height = 512
         self._camera_width = 896
         self._camera_k = np.array([[364.2601318359375, 0.0, 443.48822021484375],
@@ -45,8 +62,9 @@ class LabRun():
                                    [0.0, 0.0, 1.0]])
         self._pointclouds = [] # Pointclouds generated are stored here
         self._trans_mats = [] # Homogenous 4x4 transform matrices for each time step
+        #self._origin_points = []
 
-        self._points, self._rotations = load_data(file_path, interpolate)
+        self._points, self._rotations = load_data(file_path, interpolate, isLerp)
     
     def load_world(self):
         print("> Load simulation...")
@@ -91,6 +109,7 @@ class LabRun():
 
         #Add acopos object to the scene and applay collision and semantics API
         #acopos_asset_path = "omniverse://localhost/Projects/acoposobj_scaled/acoposobj_scaled.usd" isaacGenSynData
+        '''
         acopos_asset_path = "./isaacGenSynData/acoposobj_scaled.usd"
         self.acoposObj = add_reference_to_stage(usd_path=acopos_asset_path, prim_path="/World/Acopos")
         set_pose(self._stage, "/World/Acopos", [3, 1, 0.27], [0.5, -0.5, -0.5, 0.5])
@@ -100,6 +119,84 @@ class LabRun():
         sem.CreateSemanticDataAttr()
         sem.GetSemanticTypeAttr().Set("class")
         sem.GetSemanticDataAttr().Set("Acopos")
+        '''
+        # Create Materials for cubes 
+        mtl_created_list = []
+        # Material for cube0 bottom
+        omni.kit.commands.execute(
+            "CreateAndBindMdlMaterialFromLibrary",
+            mdl_name="OmniGlass.mdl",
+            mtl_name="OmniGlass",
+            mtl_created_list=mtl_created_list,
+        )
+        self.mtl_cube0 = self._stage.GetPrimAtPath(mtl_created_list[0])
+        omni.usd.create_material_input(self.mtl_cube0, "glass_color", Gf.Vec3f(0.67, 0.87, 0.79), Sdf.ValueTypeNames.Color3f)
+        omni.usd.create_material_input(self.mtl_cube0, "glass_ior", 1, Sdf.ValueTypeNames.Float)
+
+        # Material for cube1 mid
+        omni.kit.commands.execute(
+            "CreateAndBindMdlMaterialFromLibrary",
+            mdl_name="OmniSurface.mdl",
+            mtl_name="OmniSurface",
+            mtl_created_list=mtl_created_list,
+        )
+        self.mtl_cube1 = self._stage.GetPrimAtPath(mtl_created_list[1])
+        omni.usd.create_material_input(self.mtl_cube1, "metalness", 1, Sdf.ValueTypeNames.Float)
+        omni.usd.create_material_input(self.mtl_cube1, "specular_reflection_roughness", 0.02, Sdf.ValueTypeNames.Float)
+
+        # Material for cube2 top
+        omni.kit.commands.execute(
+            "CreateAndBindMdlMaterialFromLibrary",
+            mdl_name="OmniPBR.mdl",
+            mtl_name="OmniPBR",
+            mtl_created_list=mtl_created_list,
+        )
+        self.mtl_cube2 = self._stage.GetPrimAtPath(mtl_created_list[2])
+        omni.usd.create_material_input(self.mtl_cube2, "diffuse_color_constant", Gf.Vec3f(0.4, 0.4, 0.4), Sdf.ValueTypeNames.Color3f)
+
+        # Create cubes
+        cubeGeom0 = UsdGeom.Cube.Define(self._stage, "/World/Cube_0")
+        cubeGeom0.CreateSizeAttr(0.3)
+        cubeGeom0.AddTranslateOp().Set(Gf.Vec3d(2.5, 0, 0.15))
+        cubeGeom1 = UsdGeom.Cube.Define(self._stage, "/World/Cube_1")
+        cubeGeom1.CreateSizeAttr(0.3)
+        cubeGeom1.AddTranslateOp().Set(Gf.Vec3d(2.5, 0, 0.45))
+        cubeGeom2 = UsdGeom.Cube.Define(self._stage, "/World/Cube_2")
+        cubeGeom2.CreateSizeAttr(0.3)
+        cubeGeom2.AddTranslateOp().Set(Gf.Vec3d(2.5, 0, 0.75))
+
+        # Bind materials to cubes
+        cube0_mat_shade = UsdShade.Material(self.mtl_cube0)
+        UsdShade.MaterialBindingAPI(cubeGeom0).Bind(cube0_mat_shade, UsdShade.Tokens.strongerThanDescendants)
+        cube1_mat_shade = UsdShade.Material(self.mtl_cube1)
+        UsdShade.MaterialBindingAPI(cubeGeom1).Bind(cube1_mat_shade, UsdShade.Tokens.strongerThanDescendants)
+        cube2_mat_shade = UsdShade.Material(self.mtl_cube2)
+        UsdShade.MaterialBindingAPI(cubeGeom2).Bind(cube2_mat_shade, UsdShade.Tokens.strongerThanDescendants)
+
+        # Collision for cubes (for PhysX LiDAR sensor) (see omni.isaac.range_sensor lidar_infor.py for more)
+        cubeprim = self._stage.GetPrimAtPath("/World/Cube_0")
+        collisionAPI = UsdPhysics.CollisionAPI.Apply(cubeprim)
+        sem = Semantics.SemanticsAPI.Apply(cubeprim, "Semantics")
+        sem.CreateSemanticTypeAttr()
+        sem.CreateSemanticDataAttr()
+        sem.GetSemanticTypeAttr().Set("class")
+        sem.GetSemanticDataAttr().Set("cube0")
+
+        cubeprim = self._stage.GetPrimAtPath("/World/Cube_1")
+        collisionAPI = UsdPhysics.CollisionAPI.Apply(cubeprim)
+        sem = Semantics.SemanticsAPI.Apply(cubeprim, "Semantics")
+        sem.CreateSemanticTypeAttr()
+        sem.CreateSemanticDataAttr()
+        sem.GetSemanticTypeAttr().Set("class")
+        sem.GetSemanticDataAttr().Set("cube1")
+
+        cubeprim = self._stage.GetPrimAtPath("/World/Cube_2")
+        collisionAPI = UsdPhysics.CollisionAPI.Apply(cubeprim)
+        sem = Semantics.SemanticsAPI.Apply(cubeprim, "Semantics")
+        sem.CreateSemanticTypeAttr()
+        sem.CreateSemanticDataAttr()
+        sem.GetSemanticTypeAttr().Set("class")
+        sem.GetSemanticDataAttr().Set("cube2")
 
         #Add robot to the scene
         self.robotObj = UsdGeom.Xform.Define(self._stage, "/World/Robot")
@@ -110,11 +207,15 @@ class LabRun():
         mast.CreateRadiusAttr(0.02)
         mast.CreateHeightAttr(1)
         mast.AddTranslateOp().Set((0, 0, 0.5))
+        direction = UsdGeom.Cube.Define(self._stage, "/World/Robot/Direction")
+        direction.CreateSizeAttr(1)
+        direction.AddTranslateOp().Set(Gf.Vec3d(0, 0.15, 0.02))
+        direction.AddScaleOp().Set(Gf.Vec3d(0.1, 0.4, 0.01))
 
         if self._isStereo:
             print("> Setting up Stereo Camera...")
 
-            #zed2_asset_path = "omniverse://localhost/Projects/ZED2_scaled/ZED2_scaled.usd"
+            #zed2_asset_path = "omniverse://localhost/Projects/ZED2_scaled/ZED2_scaled.usd" # Nucleus version
             zed2_asset_path = "./isaacGenSynData/ZED2_scaled.usd"
             self.zed2Obj = add_reference_to_stage(usd_path=zed2_asset_path, prim_path="/World/Robot/ZED2")
             set_pose(self._stage, "/World/Robot/ZED2", [0, 0, 0.7])
@@ -137,19 +238,21 @@ class LabRun():
                 self.rgb_annotators.append(rgb)
 
             #Create annotator output directory
-            file_path = os.path.join(os.getcwd(), "/isaacGenSynData/_out_annot", "")
+            file_path = os.path.join(os.getcwd(), "isaacGenSynData" , "_out_image", "")
             print(f"Writing annotator data to {file_path}")
             self.dir_name_img = os.path.dirname(file_path)
             os.makedirs(self.dir_name_img, exist_ok=True)
 
         if self._isLidar:
+            
             print("> Setting up Lidar Sensor...")
 
             self.lidarObj = UsdGeom.Cylinder.Define(self._stage, "/World/Robot/LidarObj")
             self.lidarObj.CreateRadiusAttr(0.05)
             self.lidarObj.CreateHeightAttr(0.1)
             self.lidarObj.AddTranslateOp().Set((0, 0, 1.05))
-
+            
+            # PhysX based LiDAR sensor
             self.lidarInterface = _range_sensor.acquire_lidar_sensor_interface()
             result, lidarPrim = omni.kit.commands.execute(
                 "RangeSensorCreateLidar",
@@ -157,7 +260,7 @@ class LabRun():
                 parent="/World/Robot/LidarObj",
                 min_range=0.4,
                 max_range=150.0,
-                draw_points=True,
+                draw_points=(not self._isStereo),
                 draw_lines=False,
                 horizontal_fov=360.0,
                 vertical_fov=70.0,
@@ -169,19 +272,57 @@ class LabRun():
                 enable_semantics=True
             )
             UsdGeom.XformCommonAPI(lidarPrim).SetTranslate((0.0, 0.0, 0.0))
+            '''
+            create_camera(self._stage, "/World/Robot/LidarObj", "/Lidar", self._camera_k, self._camera_width, self._camera_height)
+            rotate_camera(self._stage, "/World/Robot/LidarObj/Lidar", 0.0)
+
+            rp2 = rep.create.render_product("/World/Robot/LidarObj/Lidar", resolution=(self._camera_width, self._camera_height))
+
+            #Access the data through annotators
+            self.pointcloud_anno = AnnotatorRegistry.get_annotator("pointcloud")
+            self.pointcloud_anno.attach([rp2])
+            '''
 
             #Create pointcloud output directory
-            file_path = os.path.join(os.getcwd(), "/isaacGenSynData/_out_pcd", "")
+            file_path = os.path.join(os.getcwd(), "isaacGenSynData" , "_out_pcd", "")
             print(f"Writing pointcloud data to {file_path}")
             self.dir_name_pcd = os.path.dirname(file_path)
             os.makedirs(self.dir_name_pcd, exist_ok=True)
+        
+        if self.DEBUG:
+            #Create Materials
+            omni.kit.commands.execute(
+                "CreateAndBindMdlMaterialFromLibrary",
+                mdl_name="OmniPBR.mdl",
+                mtl_name="OmniPBR",
+                mtl_created_list=mtl_created_list,
+            )
+            self.mtl_primStart = self._stage.GetPrimAtPath(mtl_created_list[3])
+            omni.usd.create_material_input(self.mtl_primStart, "diffuse_color_constant", Gf.Vec3f(0, 1, 0), Sdf.ValueTypeNames.Color3f)
+    
+            omni.kit.commands.execute(
+                "CreateAndBindMdlMaterialFromLibrary",
+                mdl_name="OmniPBR.mdl",
+                mtl_name="OmniPBR",
+                mtl_created_list=mtl_created_list,
+            )
+            self.mtl_primEnd = self._stage.GetPrimAtPath(mtl_created_list[4])
+            omni.usd.create_material_input(self.mtl_primEnd, "diffuse_color_constant", Gf.Vec3f(1, 0, 0), Sdf.ValueTypeNames.Color3f)
+            omni.kit.commands.execute(
+                "CreateAndBindMdlMaterialFromLibrary",
+                mdl_name="OmniPBR.mdl",
+                mtl_name="OmniPBR",
+                mtl_created_list=mtl_created_list,
+            )
+            self.mtl_primPath = self._stage.GetPrimAtPath(mtl_created_list[5])
+            omni.usd.create_material_input(self.mtl_primPath, "diffuse_color_constant", Gf.Vec3f(1, 0.58, 0), Sdf.ValueTypeNames.Color3f)
 
         print("> Setup done")
     
     def setup_post_load(self):
         print("> Setup post load...")
         self._world.add_physics_callback("sim_step", callback_fn=self.physics_step)
-        #self._world.play()
+        self._world.play()
         print("> Setup post load done")
 
     def setup_post_reset(self):
@@ -190,6 +331,8 @@ class LabRun():
         set_pose(self._stage, "/World/Robot", [0, 0, 0], [0, 0, 0, 1])
         if self._isLidar:
             self._pointclouds = []
+        if self.DEBUG:
+            self._stage.RemovePrim("/World/Path")
         #self._world.play()
         print("> Setup post reset done")
 
@@ -197,7 +340,13 @@ class LabRun():
         self._world.pause()
         pointcloud = self.lidarInterface.get_point_cloud_data("/World/Robot/LidarObj/Lidar")
         #semantics = self.lidarInterface.get_semantic_data("/World/ZED2/Lidar")
+        #print(pointcloud.shape)
         pointcloud = pointcloud.reshape(47700, 3)
+
+        x, y, z = pointcloud[:, 0], pointcloud[:, 1], pointcloud[:, 2]
+        mask = (x > -10) & (x < 10) & (y > -10) & (y < 10) & (z > -1)
+        pointcloud = pointcloud[mask]
+
         self._pointclouds.append(pointcloud)
 
         #Get transform 
@@ -205,97 +354,63 @@ class LabRun():
         transform = xformable.GetLocalTransformation()
         mat = np.array(transform)
         T = np.empty((4, 4))
-        T[:3, :3] = mat[:3, :3]
-        T[:3, 3] = mat[3, :3]
-        T[3, :] = [0, 0, 0, 1]
+        T[:3, :3] = mat[:3, :3] # Rotation matrix R
+        T[:3, 3] = mat[3, :3] # translation vector t
+        T[3, :] = [0, 0, 0, 1] # Homogeneous part
         self._trans_mats.append(T)
+
+        #np.append(pointcloud, T[:3, 3]) # Append point from which the scan was made as reference
+
+        # Create thread to save synthetic LiDAR pointcloud data
+        MyThread = Thread(target=save_pcd, args=(pointcloud, f"{self.dir_name_pcd}/synthetic_{self._world.current_time_step_index}_pcd.ply"))
+        MyThread.start()
 
         self._world.play()
 
     def get_image(self):
         #rep.orchestrator.step() self.rgb_annotators
+        # Create thread for each camera annotator to save corresponding synthetic rgb image
         for j, rgb_annot in enumerate(self.rgb_annotators):
             MyThread = Thread(target=save_rgb, args=(rgb_annot.get_data(), f"{self.dir_name_img}/rp{j}_step_{self._world.current_time_step_index}"))
             MyThread.start()
 
     def physics_step(self, step_size):
-        if self._i == 250:
-            print("250")
-        if self._i == 500:
-            print("500")
-        if self._i < len(self._points):
-            #self._points[self._i][2] = 0
+        if self._i % 100 == 0:
+            print("Time step: ", self._i)
+            print(self._earlyStopping)
+        # Early stopping
+        if self._i == self._earlyStopping:
+            print("Stopping early")
+            self._world.stop()
+
+        elif self._i < len(self._points):
+            if self._isLidar or self._isStereo:
+                set_pose(self._stage, "/World/Robot", self._points[self._i], self._rotations[self._i])
+
             if self._isLidar:
-                set_pose(self._stage, "/World/Robot", self._points[self._i])
                 self.get_pointcloud()
 
-            elif self._isStereo:
-                set_pose(self._stage, "/World/Robot", self._points[self._i], self._rotations[self._i])
-                #with self.stereo_camera_pair:
-                #    rep.modify.pose(position=self._points[self._i], rotation=self.euler_from_quaternion(*self._rotations[self._i]))
+            if self._isStereo:
                 self.get_image()
+
+            if self.DEBUG:
+                cubeGeom = UsdGeom.Cube.Define(self._stage, "/World/Path/Pos" + str(self._i))
+                set_pose(self._stage, "/World/Path/Pos" + str(self._i), self._points[self._i], [0, 0, 0, 1])
+                if self._i == 0:
+                    cubeGeom.CreateSizeAttr(0.25)
+                    cube_mat_shade = UsdShade.Material(self.mtl_primStart)
+                elif self._i == len(self._points) - 1:
+                    cubeGeom.CreateSizeAttr(0.25)
+                    cube_mat_shade = UsdShade.Material(self.mtl_primEnd)
+                else:
+                    cubeGeom.CreateSizeAttr(0.1)
+                    cube_mat_shade = UsdShade.Material(self.mtl_primPath)
+                UsdShade.MaterialBindingAPI(cubeGeom).Bind(cube_mat_shade, UsdShade.Tokens.strongerThanDescendants)
         else:
-            self._world.pause()
+            #self._world.pause()
+            self._world.stop()
         self._i += 1
         #self._world.pause()
-
-def align_pointclouds(source, target, transformation):
-    source_temp = copy.deepcopy(source)
-    target_temp = copy.deepcopy(target)
-    source_temp.transform(transformation)
-
-    source = np.asarray(source_temp.points)
-    target = np.asarray(target_temp.points)
-    pointcloud = np.concatenate([source, target])
-    return pointcloud
-
-def get_aligned_pointcloud(pointclouds, trans_mats, steps=1, icp=False):
-    print(f"Aligning a total of {len(pointclouds)} pointclouds")
-    threshold = 0.2
-    source = []
-    target = []
-    for i in range(0, len(pointclouds), steps):
-        if i+steps < len(pointclouds):
-            if i == 0:
-                continue
-            print(f"Aliging pointcloud {i+steps}")
-            if i == steps:
-                source = pointclouds[i+steps]
-                target = pointclouds[i]
-                pcd_s = o3d.geometry.PointCloud()
-                pcd_s.points = o3d.utility.Vector3dVector(source)
-                pcd_t = o3d.geometry.PointCloud()
-                pcd_t.points = o3d.utility.Vector3dVector(target)
-
-                trans_init = trans_mats[i+steps]
-
-                if icp:
-                    reg_p2p = o3d.registration.registration_icp(
-                        pcd_s, pcd_t, threshold, trans_init,
-                        o3d.registration.TransformationEstimationPointToPoint())
-
-                    target = align_pointclouds(pcd_s, pcd_t, reg_p2p.transformation)
-                else:
-                    target = align_pointclouds(pcd_s, pcd_t, trans_init)
-            else:
-                source = pointclouds[i+steps]
-                pcd_s = o3d.geometry.PointCloud()
-                pcd_s.points = o3d.utility.Vector3dVector(source)
-                pcd_t = o3d.geometry.PointCloud()
-                pcd_t.points = o3d.utility.Vector3dVector(target)
-
-                trans_init = trans_mats[i+steps]
-
-                if icp:
-                    reg_p2p = o3d.registration.registration_icp(
-                        pcd_s, pcd_t, threshold, trans_init,
-                        o3d.registration.TransformationEstimationPointToPoint())
-
-                    target = align_pointclouds(pcd_s, pcd_t, reg_p2p.transformation)
-                else:
-                    target = align_pointclouds(pcd_s, pcd_t, trans_init)
-    print("Done")
-    return target
 
 def main():
     parser = argparse.ArgumentParser("Virtual lab run")
@@ -304,6 +419,12 @@ def main():
     )
     parser.add_argument(
         "-i", "--interpolate", type=str, default=None, help="If provided a .json file of recorded image or pointcloud data with timestamps then interpolate missing poses"
+    )
+    parser.add_argument(
+        "-L", "--lerp", action="store_const", default=False, const=True, help="If specified, a linear interpolation between two poses will be done"
+    )
+    parser.add_argument(
+        "-E", "--early_stopping", type=int, default=-1, help="If specified a value, simulation will be stopped early according to the provided value"
     )
     parser.add_argument(
         "-l", "--lidar", action="store_const", default=False, const=True, help="If specified, a lidar scan will be done"
@@ -316,33 +437,21 @@ def main():
     if args.path is None:
         raise ValueError(f"No path specified via --path argument")
     
-    lab_run = LabRun(args.path, args.interpolate, isLidar=args.lidar, isStereo=args.stereo)
+    lab_run = LabRun(args.path, args.interpolate, isLidar=args.lidar, isStereo=args.stereo, isLerp=args.lerp, earlyStopping=args.early_stopping)
     lab_run.load_world()
 
     while simulation_app.is_running():
         #Take a step in the simulation
         lab_run._world.step(render=True)
-        if lab_run._world.is_playing():
+        if lab_run._world.is_stopped():
+            break
+        elif lab_run._world.is_playing():
             #Reset the world
             if lab_run._world.current_time_step_index == 0:
                 lab_run.reset()
 
     # cleanup
     simulation_app.close()
-    
-    # Save pointcloud data
-    if args.lidar:
-    
-        pointcloud = get_aligned_pointcloud(lab_run._pointclouds, lab_run._trans_mats, steps=100)
-        x, y, z = pointcloud[:, 0], pointcloud[:, 1], pointcloud[:, 2]
-        mask = (x > -10) & (x < 10) & (y > -10) & (y < 10) & (z > -1)
-        pointcloud = pointcloud[mask]
-
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(pointcloud)
-        o3d.io.write_point_cloud(f"{lab_run.dir_name_pcd}/registered_synthetic_pcd.ply", pcd)
-
-        #v = pptk.viewer(pointcloud)
 
 if __name__ == "__main__":
     main()

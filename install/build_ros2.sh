@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Locate and export the repository location
-REPO_DIR=$(find /path/to/folder -type d -name "Isaac-Sim-Playground.git" -print -quit)
+REPO_DIR=$(git rev-parse --show-toplevel | grep "Isaac-Sim-Playground")
 export REPO_DIR
 
 # Check if the repository directory is found
