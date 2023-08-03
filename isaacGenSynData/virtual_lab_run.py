@@ -1,5 +1,4 @@
 from omni.isaac.kit import SimulationApp
-from omni.isaac.core.utils.extensions import enable_extension 
 config = {
     "headless": True,
     "active_gpu": None,
@@ -23,6 +22,8 @@ config = {
     "livesync_usd": None,
 }
 simulation_app = SimulationApp(config)
+
+from omni.isaac.core.utils.extensions import enable_extension 
 
 simulation_app.set_setting("/app/window/drawMouse", True)
 simulation_app.set_setting("/app/livestream/proto", "ws")
