@@ -1,4 +1,5 @@
 from omni.isaac.kit import SimulationApp
+from omni.isaac.core.utils.extensions import enable_extension 
 config = {
     "headless": True,
     "active_gpu": None,
@@ -23,6 +24,12 @@ config = {
 }
 simulation_app = SimulationApp(config)
 
+simulation_app.set_setting("/app/window/drawMouse", True)
+simulation_app.set_setting("/app/livestream/proto", "ws")
+simulation_app.set_setting("/app/livestream/websocket/framerate_limit", 120)
+simulation_app.set_setting("/ngx/enabled", False)
+enable_extension("omni.kit.livestream.native")
+
 #python
 import os
 import argparse
@@ -34,7 +41,7 @@ from lab_utility import create_camera, rotate_camera, set_pose, load_data, save_
 from omni.isaac.core import World
 from omni.isaac.core.utils.stage import create_new_stage, update_stage
 from omni.isaac.core.utils.stage import add_reference_to_stage
-from omni.isaac.range_sensor import _range_sensor 
+from omni.isaac.range_sensor import _range_sensor
 
 #omniverse
 import omni.kit
@@ -377,7 +384,6 @@ class LabRun():
     def physics_step(self, step_size):
         if self._i % 100 == 0:
             print("Time step: ", self._i)
-            print(self._earlyStopping)
         # Early stopping
         if self._i == self._earlyStopping:
             print("Stopping early")
