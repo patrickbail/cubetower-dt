@@ -23,14 +23,6 @@ config = {
 }
 simulation_app = SimulationApp(config)
 
-from omni.isaac.core.utils.extensions import enable_extension 
-
-simulation_app.set_setting("/app/window/drawMouse", True)
-simulation_app.set_setting("/app/livestream/proto", "ws")
-simulation_app.set_setting("/app/livestream/websocket/framerate_limit", 120)
-simulation_app.set_setting("/ngx/enabled", False)
-enable_extension("omni.kit.livestream.native")
-
 #python
 import os
 import argparse
@@ -42,6 +34,7 @@ from lab_utility import create_camera, rotate_camera, set_pose, load_data, save_
 from omni.isaac.core import World
 from omni.isaac.core.utils.stage import create_new_stage, update_stage
 from omni.isaac.core.utils.stage import add_reference_to_stage
+from omni.isaac.core.utils.extensions import enable_extension 
 from omni.isaac.range_sensor import _range_sensor
 
 #omniverse
@@ -330,7 +323,7 @@ class LabRun():
     def setup_post_load(self):
         print("> Setup post load...")
         self._world.add_physics_callback("sim_step", callback_fn=self.physics_step)
-        self._world.play()
+        #self._world.play()
         print("> Setup post load done")
 
     def setup_post_reset(self):
@@ -439,10 +432,21 @@ def main():
     parser.add_argument(
         "-s", "--stereo", action="store_const", default=False, const=True, help="If specified, a scan with stereo vision will be done"
     )
+    parser.add_argument(
+        "--livestream", action="store_const", default=False, const=True, help="If specified, the livestream capability will be activated. Connect via the Streaming Client"
+    )
     args, unknown_args = parser.parse_known_args()
     print(args)
     if args.path is None:
         raise ValueError(f"No path specified via --path argument")
+
+    if args.livestream:
+        print('> Activate livestream')
+        simulation_app.set_setting("/app/window/drawMouse", True)
+        simulation_app.set_setting("/app/livestream/proto", "ws")
+        simulation_app.set_setting("/app/livestream/websocket/framerate_limit", 120)
+        simulation_app.set_setting("/ngx/enabled", False)
+        enable_extension("omni.kit.livestream.native")
     
     lab_run = LabRun(args.path, args.interpolate, isLidar=args.lidar, isStereo=args.stereo, isLerp=args.lerp, earlyStopping=args.early_stopping)
     lab_run.load_world()
@@ -457,6 +461,7 @@ def main():
             if lab_run._world.current_time_step_index == 0:
                 lab_run.reset()
 
+    print('> Closing ...')
     # cleanup
     simulation_app.close()
 
