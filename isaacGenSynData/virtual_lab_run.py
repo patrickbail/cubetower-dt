@@ -56,9 +56,9 @@ from omni.replicator.core import AnnotatorRegistry
 from pxr import Usd, UsdGeom, Gf, UsdShade, Sdf
 
 class LabRun():
-    def __init__(self, file_path, interpolate = None, isLidar = False, isStereo = False, isLerp = False, earlyStopping = -1) -> None:
+    def __init__(self, file_path, file_sensor = None, isLidar = False, isStereo = False, isLerp = False, earlyStopping = -1) -> None:
         self.DEBUG_CAMERA = False
-        self.DEBUG_LIDAR = True
+        self.DEBUG_LIDAR = False
         self._world = None
         self._stage = None
         self._current_tasks = None
@@ -77,7 +77,7 @@ class LabRun():
         self._trans_mats = [] # Homogenous 4x4 transform matrices for each time step
         #self._origin_points = []
 
-        self._points, self._rotations = load_data(file_path, interpolate, isLerp)
+        self._points, self._rotations = load_data(file_path, file_sensor, isLerp)
     
     def load_world(self):
         print("> Load simulation...")
@@ -119,43 +119,10 @@ class LabRun():
             usd_path="./Isaac-Sim-Playground/Assets/USD-Files/cube_setup5.usd", prim_path="/World"
         )
 
-        #Add groundplane
-        #self._world.scene.add_default_ground_plane()
-        #prim_groundplane = self._stage.GetPrimAtPath("/World/defaultGroundPlane")
-        #self.groundplane = UsdGeom.Xformable(prim_groundplane)
-
-        #Add acopos object to the scene and applay collision and semantics API
-        #acopos_asset_path = "omniverse://localhost/Projects/acoposobj_scaled/acoposobj_scaled.usd" isaacGenSynData
-        '''
-        acopos_asset_path = "./isaacGenSynData/acoposobj_scaled.usd"
-        self.acoposObj = add_reference_to_stage(usd_path=acopos_asset_path, prim_path="/World/Acopos")
-        set_pose(self._stage, "/World/Acopos", [3, 1, 0.27], [0.5, -0.5, -0.5, 0.5])
-        collisionAPI = UsdPhysics.CollisionAPI.Apply(self.acoposObj)
-        sem = Semantics.SemanticsAPI.Apply(self.acoposObj, "Semantics")
-        sem.CreateSemanticTypeAttr()
-        sem.CreateSemanticDataAttr()
-        sem.GetSemanticTypeAttr().Set("class")
-        sem.GetSemanticDataAttr().Set("Acopos")
-        '''
+        #Add robot to the scene
         add_reference_to_stage(
             usd_path="./Isaac-Sim-Playground/Assets/USD-Files/robot.usd", prim_path="/World/robot"
         )
-
-        #Add robot to the scene
-        '''
-        robotObj = UsdGeom.Xform.Define(self._stage, "/World/Robot")
-        base = UsdGeom.Cylinder.Define(self._stage, "/World/Robot/Base")
-        base.CreateRadiusAttr(0.4)
-        base.CreateHeightAttr(0.01)
-        mast = UsdGeom.Cylinder.Define(self._stage, "/World/Robot/Mast")
-        mast.CreateRadiusAttr(0.02)
-        mast.CreateHeightAttr(1)
-        mast.AddTranslateOp().Set((0, 0, 0.5))
-        direction = UsdGeom.Cube.Define(self._stage, "/World/Robot/Direction")
-        direction.CreateSizeAttr(1)
-        direction.AddTranslateOp().Set(Gf.Vec3d(0.15, 0, 0.02))
-        direction.AddScaleOp().Set(Gf.Vec3d(0.4, 0.1, 0.01))
-        '''
 
         if self._isStereo:
             print("> Setting up Stereo Camera...")
@@ -178,9 +145,6 @@ class LabRun():
                           self._camera_width, self._camera_height, [-0.06, 0, 0], "right")
             create_camera(self._stage, "/World/robot/Robot/ZED2", "/DepthCamera", self._camera_k, 
                           self._camera_width, self._camera_height, [0., 0, 0])
-            #rotate_camera(self._stage, "/World/Robot/ZED2/CameraLeft", 0.06)
-            #rotate_camera(self._stage, "/World/Robot/ZED2/CameraRight", -0.06)
-            #rotate_camera(self._stage, "/World/Robot/ZED2/DepthCamera", 0.0)
             
             #Create render products
             rp0 = rep.create.render_product("/World/robot/Robot/ZED2/CameraLeft", resolution=(self._camera_width, self._camera_height))
@@ -221,9 +185,6 @@ class LabRun():
             print(f"Writing annotator data to {file_path}")
             self.dir_name_img = os.path.dirname(file_path)
             os.makedirs(self.dir_name_img, exist_ok=True)
-
-            # Create ROS Graph
-            #create_ros_graph(self._stage)
 
         if self._isLidar:
             
@@ -388,10 +349,7 @@ class LabRun():
             self._world.stop()
 
         elif self._i < len(self._points):
-            if self._isStereo:
-                set_pose(self._stage, "/World/robot/Robot", self._points[self._i], self._rotations[self._i])
-
-            elif self._isLidar:
+            if self._isStereo or self._isLidar:
                 set_pose(self._stage, "/World/robot/Robot", self._points[self._i], self._rotations[self._i])
 
             if self._isLidar:

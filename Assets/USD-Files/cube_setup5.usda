@@ -7,8 +7,8 @@
                 double radius = 5
             }
             dictionary Perspective = {
-                double3 position = (-0.06743317522904224, 0.7088869820253663, 0.7828939191938018)
-                double3 target = (6.6270680859065045, -1.1910789503738577, 0.46618822529077925)
+                double3 position = (0.713937468528315, 0.8695919119800658, 0.8411100188842483)
+                double3 target = (1.919091670605317, 0.2335811786372406, 0.6335197418697477)
             }
             dictionary Right = {
                 double3 position = (0, -5, 0)
@@ -21,13 +21,40 @@
             string boundCamera = "/OmniverseKit_Persp"
         }
         dictionary omni_layer = {
-            string authoring_layer = "./cube_setup.usd"
+            string authoring_layer = "./cube_setup5.usd"
             dictionary muteness = {
             }
         }
         int refinementOverrideImplVersion = 0
         dictionary renderSettings = {
-            double "rtx:sceneDb:ambientLightIntensity" = 0.7999999821186066
+            float3 "rtx:debugView:pixelDebug:textColor" = (0, 1e18, 0)
+            float3 "rtx:fog:fogColor" = (0.75, 0.75, 0.75)
+            float3 "rtx:post:backgroundZeroAlpha:backgroundDefaultColor" = (0, 0, 0)
+            float3 "rtx:post:colorcorr:contrast" = (1, 1, 1)
+            float3 "rtx:post:colorcorr:gain" = (1, 1, 1)
+            float3 "rtx:post:colorcorr:gamma" = (1, 1, 1)
+            float3 "rtx:post:colorcorr:offset" = (0, 0, 0)
+            float3 "rtx:post:colorcorr:saturation" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:blackpoint" = (0, 0, 0)
+            float3 "rtx:post:colorgrad:contrast" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:gain" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:gamma" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:lift" = (0, 0, 0)
+            float3 "rtx:post:colorgrad:multiply" = (1, 1, 1)
+            float3 "rtx:post:colorgrad:offset" = (0, 0, 0)
+            float3 "rtx:post:colorgrad:whitepoint" = (1, 1, 1)
+            float3 "rtx:post:lensDistortion:lensFocalLengthArray" = (10, 30, 50)
+            float3 "rtx:post:lensFlares:anisoFlareFalloffX" = (450, 475, 500)
+            float3 "rtx:post:lensFlares:anisoFlareFalloffY" = (10, 10, 10)
+            float3 "rtx:post:lensFlares:cutoffPoint" = (2, 2, 2)
+            float3 "rtx:post:lensFlares:haloFlareFalloff" = (10, 10, 10)
+            float3 "rtx:post:lensFlares:haloFlareRadius" = (75, 75, 75)
+            float3 "rtx:post:lensFlares:isotropicFlareFalloff" = (50, 50, 50)
+            float3 "rtx:post:tonemap:whitepoint" = (1, 1, 1)
+            float3 "rtx:raytracing:inscattering:singleScatteringAlbedo" = (0.9, 0.9, 0.9)
+            float3 "rtx:raytracing:inscattering:transmittanceColor" = (0.5, 0.5, 0.5)
+            float3 "rtx:sceneDb:ambientLightColor" = (0.1, 0.1, 0.1)
+            double "rtx:sceneDb:ambientLightIntensity" = 0.909999979659915
         }
     }
     defaultPrim = "World"
@@ -360,6 +387,72 @@ def Xform "World"
                 uniform token info:implementationSource = "sourceAsset"
                 uniform asset info:mdl:sourceAsset = @omniverse://localhost/NVIDIA/Materials/Base/Glass/Mirror.mdl@
                 uniform token info:mdl:sourceAsset:subIdentifier = "Mirror"
+                float inputs:bump_factor = 0.06 (
+                    customData = {
+                        float default = 1
+                        dictionary soft_range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    displayGroup = "Normal"
+                    displayName = "Normal Strength"
+                    doc = "Strength of normal map"
+                    hidden = false
+                )
+                float inputs:detail_bump_factor = 0 (
+                    customData = {
+                        float default = 0.3
+                        dictionary soft_range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    displayGroup = "Normal"
+                    displayName = "Detail Normal Strength"
+                    doc = "Strength of the detail normal"
+                    hidden = false
+                )
+                asset inputs:normalmap_texture = @./images/foil_original_normal_map.png@ (
+                    colorSpace = "raw"
+                    customData = {
+                        asset default = @@
+                    }
+                    displayGroup = "Normal"
+                    displayName = "Normal Map"
+                    hidden = false
+                )
+                bool inputs:project_uvw = 1 (
+                    customData = {
+                        bool default = 0
+                    }
+                    displayGroup = "UV"
+                    displayName = "Enable Project UVW Coordinates"
+                    doc = "When enabled, UV coordinates will be generated by projecting them from a coordinate system"
+                    hidden = false
+                )
+                float inputs:reflection_roughness_constant = 0.03 (
+                    customData = {
+                        float default = 0
+                        dictionary range = {
+                            float max = 1
+                            float min = 0
+                        }
+                    }
+                    displayGroup = "Reflectivity"
+                    displayName = "Roughness Amount"
+                    doc = "Higher roughness values lead to more blurry reflections"
+                    hidden = false
+                )
+                bool inputs:world_or_object = 1 (
+                    customData = {
+                        bool default = 0
+                    }
+                    displayGroup = "UV"
+                    displayName = "Enable World Space"
+                    doc = "When enabled, uses world space for projection, otherwise object space is used"
+                    hidden = false
+                )
                 token outputs:out (
                     renderType = "material"
                 )
@@ -420,7 +513,7 @@ def Xform "World"
                     doc = "Sets the color of the glass"
                     hidden = false
                 )
-                float inputs:glass_ior = 1.52 (
+                float inputs:glass_ior = 1.22 (
                     customData = {
                         float default = 1.52
                         dictionary soft_range = {
@@ -612,7 +705,7 @@ def Xform "World"
                     doc = "Controls the position of the detail texture."
                     hidden = false
                 )
-                asset inputs:diffuse_texture = @./warning_strip.png@ (
+                asset inputs:diffuse_texture = @./images/warning_strip.png@ (
                     colorSpace = "raw"
                     customData = {
                         asset default = @@
@@ -644,8 +737,8 @@ def Xform "World"
                         float2 default = (1, 1)
                     }
                     displayGroup = "UV"
-                    displayName = "Texture Scale"
-                    doc = "Larger number increases size of texture."
+                    displayName = "Texture Tiling"
+                    doc = "Controls the repetition of the texture."
                     hidden = false
                 )
                 float2 inputs:texture_translate = (0.48, 0.5) (
@@ -676,7 +769,7 @@ def Xform "World"
                     }
                     displayGroup = "UV"
                     displayName = "Enable World Space"
-                    doc = "When set to 'true' uses world space for projection, when 'false' object space is used"
+                    doc = "When enabled, uses world space for projection, otherwise object space is used"
                     hidden = false
                 )
                 token outputs:out
@@ -907,7 +1000,7 @@ def Xform "World"
                     }
                     displayGroup = "UV"
                     displayName = "Enable World Space"
-                    doc = "When set to 'true' uses world space for projection, when 'false' object space is used"
+                    doc = "When enabled, uses world space for projection, otherwise object space is used"
                     hidden = false
                 )
                 token outputs:out
@@ -1381,6 +1474,9 @@ def Xform "World"
 
         def Xform "Glass_Cube"
         {
+            rel material:binding = </World/Looks/Clear_Glass> (
+                bindMaterialAs = "weakerThanDescendants"
+            )
             quatd xformOp:orient = (-1.6081226496766366e-16, 0, 0, 1)
             double3 xformOp:scale = (1, 1, 1)
             double3 xformOp:translate = (0, 3.061616997868383e-16, 0.15)
@@ -1389,7 +1485,7 @@ def Xform "World"
             def Cube "Glass_Wall"
             {
                 float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-                rel material:binding = </World/Looks/Clear_Glass> (
+                rel material:binding = None (
                     bindMaterialAs = "weakerThanDescendants"
                 )
                 double size = 1
@@ -1402,7 +1498,7 @@ def Xform "World"
             def Cube "Glass_Wall_01"
             {
                 float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-                rel material:binding = </World/Looks/Clear_Glass> (
+                rel material:binding = None (
                     bindMaterialAs = "weakerThanDescendants"
                 )
                 double size = 1
@@ -1415,7 +1511,7 @@ def Xform "World"
             def Cube "Glass_Wall_02"
             {
                 float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-                rel material:binding = </World/Looks/Clear_Glass> (
+                rel material:binding = None (
                     bindMaterialAs = "weakerThanDescendants"
                 )
                 double size = 1
@@ -1428,7 +1524,7 @@ def Xform "World"
             def Cube "Glass_Wall_03"
             {
                 float3[] extent = [(-0.5, -0.5, -0.5), (0.5, 0.5, 0.5)]
-                rel material:binding = </World/Looks/Clear_Glass> (
+                rel material:binding = None (
                     bindMaterialAs = "weakerThanDescendants"
                 )
                 double size = 1
@@ -2077,6 +2173,7 @@ def Xform "World"
             bindMaterialAs = "weakerThanDescendants"
         )
         double size = 1
+        token visibility = "inherited"
         quatd xformOp:orient = (1, 0, 0, 0)
         double3 xformOp:scale = (0.019999999552965164, 0.8999999761581421, 0.019999999552965164)
         double3 xformOp:translate = (3.0159119866682125, -0.9458641545477456, 0.010000000000012058)
@@ -2103,26 +2200,6 @@ def Xform "World"
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
         }
 
-        def CylinderLight "CylinderLight" (
-            prepend apiSchemas = ["ShapingAPI"]
-        )
-        {
-            color3f color = (0.99215686, 0.78431374, 0.5529412)
-            float intensity = 296000
-            float length = 0.9
-            float radius = 0.02
-            float shaping:cone:angle = 180
-            float shaping:cone:softness
-            float shaping:focus
-            color3f shaping:focusTint
-            asset shaping:ies:file
-            token visibility = "invisible"
-            quatd xformOp:orient = (0.49999999999999994, 0.5000000000000003, 0.5000000000000003, 0.4999999999999997)
-            double3 xformOp:scale = (1.1111111640930176, 50, 50)
-            double3 xformOp:translate = (0, 0, 0.9000000134110451)
-            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
-        }
-
         def DiskLight "DiskLight" (
             prepend apiSchemas = ["ShapingAPI"]
         )
@@ -2136,10 +2213,31 @@ def Xform "World"
             float shaping:focus
             color3f shaping:focusTint
             asset shaping:ies:file
-            token visibility = "inherited"
+            token visibility = "invisible"
             quatd xformOp:orient = (6.123233995736766e-17, -1, 0, 0)
             double3 xformOp:scale = (5, 1.1111111640930176, 50)
             double3 xformOp:translate = (0, 0, 0.800000011920929)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+
+        def CylinderLight "CylinderLight" (
+            prepend apiSchemas = ["ShapingAPI"]
+        )
+        {
+            color3f color = (0.99215686, 0.78431374, 0.5529412)
+            float exposure = 4.8
+            float intensity = 2960
+            float length = 0.9
+            float radius = 0.02
+            float shaping:cone:angle = 180
+            float shaping:cone:softness
+            float shaping:focus
+            color3f shaping:focusTint
+            asset shaping:ies:file
+            token visibility = "inherited"
+            quatd xformOp:orient = (0.49999999999999994, 0.5000000000000003, 0.5000000000000003, 0.4999999999999997)
+            double3 xformOp:scale = (1, 50, 50)
+            double3 xformOp:translate = (0, 0, 0.9000000134110451)
             uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
         }
     }
@@ -2149,5 +2247,12 @@ over "Render" (
     hide_in_stage_window = true
 )
 {
+}
+
+over "OmniverseKit_Persp"
+{
+    float focalLength = 12.3
+    float3 xformOp:rotateXYZ = (-67.700005, -180, 76.6)
+    double3 xformOp:translate = (0.30000000447034836, 0.9000000134110451, 1)
 }
 

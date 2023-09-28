@@ -18,7 +18,8 @@ import omni.graph.core as og
 from pxr import UsdGeom, Gf
 
 # Load position and rotation data and interpolate points if specified
-def load_data(file_path, interpolate, isLerp):
+# TODO when interpolating remember indicices of timestamps that have no interpolated pose
+def load_data(file_path, file_sensor, isLerp):
     points = []
     rotations = []
     with open(file_path, 'r', encoding='utf-8') as jsonf:
@@ -35,7 +36,6 @@ def load_data(file_path, interpolate, isLerp):
 
     else:
         points = np.array([pose["pose"]["position"] for pose in path_data])
-        #self._points[:, [1,2]] = self._points[:, [2,1]] #Swapping columns
         rotations = np.array([pose["pose"]["orientation"] for pose in path_data])
 
         # Change coordinate system to origin position
@@ -58,30 +58,38 @@ def load_data(file_path, interpolate, isLerp):
         rotations = updated_rotations
 
         # Interpolate missing points in given path data
-        if interpolate:
+        if file_sensor:
             print("> Interpolation starting...")
-            with open(interpolate, 'r', encoding='utf-8') as jsonf:
-                sim_data = json.load(jsonf)
+            with open(file_sensor, 'r', encoding='utf-8') as jsonf:
+                sensor_data = json.load(jsonf)
 
             path_points = []
             path_rotations = []
             path_time = [(pose["header"]["sec"] + (pose["header"]["nanosec"]/1e+9)) for pose in path_data]
-            sim_data_time = [(image["header"]["sec"] + (image["header"]["nanosec"]/1e+9)) for image in sim_data]
+            sensor_time = [(image["header"]["sec"] + (image["header"]["nanosec"]/1e+9)) for image in sensor_data]
 
             time_intervals = zip(path_time, path_time[1:])
             point_intervals = list(zip(points, points[1:]))
             rotation_intervals = list(zip(rotations, rotations[1:]))
             for i, (start_t, end_t) in enumerate(time_intervals):
-                for image_t in sim_data_time:
-                    if start_t == image_t:
+                for sensor_t in sensor_time:
+                    # Check if last timestamp interval
+                    if i == len(path_time) - 1:
+                        if end_t == sensor_t:
+                            path_points.append(points[-1])
+                            path_rotations.append(rotations[-1])
+                            continue
+                    # Timestamps match, no interpolation needed
+                    if start_t == sensor_t:
                         path_points.append(points[i])
                         path_rotations.append(rotations[i])
                         continue
-                    if start_t < image_t < end_t:
+                    # Interpolate pose for missing match
+                    if start_t < sensor_t < end_t:
                         # LERP
                         p0 = point_intervals[i][0]
                         p1 = point_intervals[i][1]
-                        d = (image_t - start_t)/(end_t - start_t)
+                        d = (sensor_t - start_t)/(end_t - start_t)
                         pd = (1-d)*p0 + d*p1
                         path_points.append(pd)
                         # SLERP
@@ -90,9 +98,6 @@ def load_data(file_path, interpolate, isLerp):
                         qd = slerp(q0, q1, d)
                         #path_rotations.append(rotations[i])
                         path_rotations.append(qd)
-
-            path_points.append(points[-1])
-            path_rotations.append(rotations[-1])
 
             points = path_points
             rotations = path_rotations
@@ -245,89 +250,3 @@ def create_camera(stage, parent, name, camera_matrix, width, height, position, s
         max_fov = Dfov, polynomial = Ftheta_A)
     camera.set_clipping_range(near_distance=0.0, far_distance=1000000.0)
     '''
-
-# Create ROS graph to publish image and camera info data to Isaac ESS DNN model or ZED 2 Wrapper node for disparity images
-def create_ros_graph(stage):
-    # enable ROS bridge extension
-    #enable_extension("omni.isaac.ros2_bridge")
-
-    ROS_CAMERA_GRAPH_PATH = "/ROS_Camera"
-    LEFT_CAMERA_STAGE_PATH = "/World/Robot/ZED2/CameraLeft"
-    RIGHT_CAMERA_STAGE_PATH = "/World/Robot/ZED2/CameraRight"
-    # Creating an on-demand push graph with cameraHelper nodes to generate ROS image publishers
-    keys = og.Controller.Keys
-    (ros_camera_graph, _, _, _) = og.Controller.edit(
-        {
-            "graph_path": ROS_CAMERA_GRAPH_PATH,
-            "evaluator_name": "push",
-            "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
-        },
-        {
-            keys.CREATE_NODES: [
-                ("OnTick", "omni.graph.action.OnTick"),
-                ("createViewportLeft", "omni.isaac.core_nodes.IsaacCreateViewport"),
-                ("createViewportRight", "omni.isaac.core_nodes.IsaacCreateViewport"),
-                ("getRenderProductLeft", "omni.isaac.core_nodes.IsaacGetViewportRenderProduct"),
-                ("getRenderProductRight", "omni.isaac.core_nodes.IsaacGetViewportRenderProduct"),
-                ("setLeftCamera", "omni.isaac.core_nodes.IsaacSetCameraOnRenderProduct"),
-                ("setRightCamera", "omni.isaac.core_nodes.IsaacSetCameraOnRenderProduct"),
-                ("leftCameraHelperRgb", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
-                ("leftCameraHelperInfo", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
-                ("rightCameraHelperRgb", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
-                ("rightCameraHelperInfo", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
-            ],
-            keys.CONNECT: [
-                ("OnTick.outputs:tick", "createViewportLeft.inputs:execIn"),
-                ("OnTick.outputs:tick", "createViewportRight.inputs:execIn"),
-                ("createViewportLeft.outputs:execOut", "getRenderProductLeft.inputs:execIn"),
-                ("createViewportLeft.outputs:viewport", "getRenderProductLeft.inputs:viewport"),
-                ("createViewportRight.outputs:execOut", "getRenderProductRight.inputs:execIn"),
-                ("createViewportRight.outputs:viewport", "getRenderProductRight.inputs:viewport"),
-                ("getRenderProductLeft.outputs:execOut", "setLeftCamera.inputs:execIn"),
-                ("getRenderProductLeft.outputs:renderProductPath", "setLeftCamera.inputs:renderProductPath"),
-                ("getRenderProductRight.outputs:execOut", "setRightCamera.inputs:execIn"),
-                ("getRenderProductRight.outputs:renderProductPath", "setRightCamera.inputs:renderProductPath"),
-                ("setLeftCamera.outputs:execOut", "leftCameraHelperRgb.inputs:execIn"),
-                ("setLeftCamera.outputs:execOut", "leftCameraHelperInfo.inputs:execIn"),
-                ("setRightCamera.outputs:execOut", "rightCameraHelperRgb.inputs:execIn"),
-                ("setRightCamera.outputs:execOut", "rightCameraHelperInfo.inputs:execIn"),
-                ("getRenderProductLeft.outputs:renderProductPath", "leftCameraHelperRgb.inputs:renderProductPath"),
-                ("getRenderProductLeft.outputs:renderProductPath", "leftCameraHelperInfo.inputs:renderProductPath"),
-                ("getRenderProductRight.outputs:renderProductPath", "rightCameraHelperRgb.inputs:renderProductPath"),
-                ("getRenderProductRight.outputs:renderProductPath", "rightCameraHelperInfo.inputs:renderProductPath"),
-            ],
-            keys.SET_VALUES: [
-                ("createViewportLeft.inputs:viewportId", 0),
-                ("createViewportRight.inputs:viewportId", 1),
-                ("leftCameraHelperRgb.inputs:frameId", "sim_camera"),
-                ("leftCameraHelperRgb.inputs:topicName", "left/image_rect"),
-                ("leftCameraHelperRgb.inputs:type", "rgb"),
-                ("leftCameraHelperInfo.inputs:frameId", "sim_camera"),
-                ("leftCameraHelperInfo.inputs:topicName", "left/camera_info"),
-                ("leftCameraHelperInfo.inputs:type", "camera_info"),
-                ("rightCameraHelperRgb.inputs:frameId", "sim_camera"),
-                ("rightCameraHelperRgb.inputs:topicName", "right/image_rect"),
-                ("rightCameraHelperRgb.inputs:type", "rgb"),
-                ("rightCameraHelperRgb.inputs:stereoOffset", [-43.717472076416016, 0.0]),
-                ("rightCameraHelperInfo.inputs:frameId", "sim_camera"),
-                ("rightCameraHelperInfo.inputs:topicName", "right/camera_info"),
-                ("rightCameraHelperInfo.inputs:type", "camera_info"),
-                ("rightCameraHelperInfo.inputs:stereoOffset", [-43.717472076416016, 0.0]),
-            ],
-        },
-    )
-
-    set_targets(
-        prim=stage.GetPrimAtPath(ROS_CAMERA_GRAPH_PATH + "/setLeftCamera"),
-        attribute="inputs:cameraPrim",
-        target_prim_paths=[LEFT_CAMERA_STAGE_PATH],
-    )
-    set_targets(
-        prim=stage.GetPrimAtPath(ROS_CAMERA_GRAPH_PATH + "/setRightCamera"),
-        attribute="inputs:cameraPrim",
-        target_prim_paths=[RIGHT_CAMERA_STAGE_PATH],
-    )
-
-    # Run the ROS Camera graph once to generate ROS image publishers in SDGPipeline
-    og.Controller.evaluate_sync(ros_camera_graph)
-    print("> ROS Graph created")
