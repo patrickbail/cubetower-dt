@@ -1,0 +1,7 @@
+_out_image/
+_out_pcd/
+tests/
+
+__pycache__/
+.thumbs/
+.vscode

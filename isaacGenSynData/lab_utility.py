@@ -1,13 +1,20 @@
 #python
+import cv2
 import json
+import math
 import numpy as np
 import open3d as o3d
 from PIL import Image
+from scipy.optimize import curve_fit
 from scipy.spatial.transform import Rotation
 
 #isaac-core
+from omni.isaac.core.utils.prims import set_targets
+from omni.isaac.core.utils.extensions import enable_extension 
+from omni.isaac.sensor import Camera
 
 #omniverse
+import omni.graph.core as og
 from pxr import UsdGeom, Gf
 
 # Load position and rotation data and interpolate points if specified
@@ -26,62 +33,70 @@ def load_data(file_path, interpolate, isLerp):
         steps = path_data["steps"]
         points, rotations = interpolate_path(p0, p1, q0, q1, steps)
 
-    # Interpolate missing points in given path data
-    elif interpolate:
-        print("> Interpolation starting...")
-        with open(interpolate, 'r', encoding='utf-8') as jsonf:
-            sim_data = json.load(jsonf)
-
-        path_points = np.array([pose["pose"]["position"] for pose in path_data])
-        #path_points[:, [1,2]] = path_points[:, [2,1]] #Swapping columns
-        path_rotation = np.array([pose["pose"]["orientation"] for pose in path_data])
-        path_time = [(pose["header"]["sec"] + (pose["header"]["nanosec"]/1e+9)) for pose in path_data]
-        sim_data_time = [(image["header"]["sec"] + (image["header"]["nanosec"]/1e+9)) for image in sim_data]
-
-        time_intervals = zip(path_time, path_time[1:])
-        point_intervals = list(zip(path_points, path_points[1:]))
-        for i, (start_t, end_t) in enumerate(time_intervals):
-            for image_t in sim_data_time:
-                if start_t == image_t:
-                    points.append(path_points[i])
-                    rotations.append(path_rotation[i])
-                    continue
-                if start_t < image_t < end_t:
-                    p0 = point_intervals[i][0]
-                    p1 = point_intervals[i][1]
-                    d = (image_t - start_t)/(end_t - start_t)
-                    pd = (1-d)*p0 + d*p1
-                    points.append(pd)
-                    rotations.append(path_rotation[i])
-
-        points.append(path_points[-1])
-        rotations.append(path_rotation[-1])
-        print("> Interpolation ended")
-
-    # Save path without interpolating missing positions
     else:
         points = np.array([pose["pose"]["position"] for pose in path_data])
         #self._points[:, [1,2]] = self._points[:, [2,1]] #Swapping columns
         rotations = np.array([pose["pose"]["orientation"] for pose in path_data])
-    
-    # Change coordinate system to origin position
-    # Extract the first position and rotation
-    origin_position = points[0]
-    origin_rotation = rotations[0]
-    
-    # Translate the positions
-    translated_positions = points - origin_position
-    
-    # Rotate the positions
-    origin_rotation_conjugate = Rotation.from_quat(origin_rotation).inv().as_quat() # Get inverse of new origin orientation
-    rotated_positions = Rotation.from_quat(origin_rotation_conjugate).apply(translated_positions)
-    
-    # Update the rotations by multyplying all orientations by the origin inverse
-    updated_rotations = np.array([(Rotation.from_quat(q) * Rotation.from_quat(origin_rotation_conjugate)).as_quat() for q in rotations])
-    #updated_rotations = np.array([r.as_quat() for r in updated_rotations])
 
-    points = rotated_positions
-    rotations = updated_rotations
+        # Change coordinate system to origin position
+        # Extract the first position and rotation
+        origin_position = points[0]
+        origin_rotation = rotations[0]
+
+        # Translate the positions
+        translated_positions = points - origin_position
+
+        # Rotate the positions
+        origin_rotation_conjugate = Rotation.from_quat(origin_rotation).inv().as_quat() # Get inverse of new origin orientation
+        rotated_positions = Rotation.from_quat(origin_rotation_conjugate).apply(translated_positions)
+
+        # Update the rotations by multyplying all orientations by the origin inverse
+        updated_rotations = np.array([(Rotation.from_quat(q) * Rotation.from_quat(origin_rotation_conjugate)).as_quat() for q in rotations])
+        #updated_rotations = np.array([r.as_quat() for r in updated_rotations])
+
+        points = rotated_positions
+        rotations = updated_rotations
+
+        # Interpolate missing points in given path data
+        if interpolate:
+            print("> Interpolation starting...")
+            with open(interpolate, 'r', encoding='utf-8') as jsonf:
+                sim_data = json.load(jsonf)
+
+            path_points = []
+            path_rotations = []
+            path_time = [(pose["header"]["sec"] + (pose["header"]["nanosec"]/1e+9)) for pose in path_data]
+            sim_data_time = [(image["header"]["sec"] + (image["header"]["nanosec"]/1e+9)) for image in sim_data]
+
+            time_intervals = zip(path_time, path_time[1:])
+            point_intervals = list(zip(points, points[1:]))
+            rotation_intervals = list(zip(rotations, rotations[1:]))
+            for i, (start_t, end_t) in enumerate(time_intervals):
+                for image_t in sim_data_time:
+                    if start_t == image_t:
+                        path_points.append(points[i])
+                        path_rotations.append(rotations[i])
+                        continue
+                    if start_t < image_t < end_t:
+                        # LERP
+                        p0 = point_intervals[i][0]
+                        p1 = point_intervals[i][1]
+                        d = (image_t - start_t)/(end_t - start_t)
+                        pd = (1-d)*p0 + d*p1
+                        path_points.append(pd)
+                        # SLERP
+                        q0 = rotation_intervals[i][0]
+                        q1 = rotation_intervals[i][1]
+                        qd = slerp(q0, q1, d)
+                        #path_rotations.append(rotations[i])
+                        path_rotations.append(qd)
+
+            path_points.append(points[-1])
+            path_rotations.append(rotations[-1])
+
+            points = path_points
+            rotations = path_rotations
+            print("> Interpolation ended")
 
     print(f"Total of {len(points)} points in path")
     return points, rotations
@@ -111,6 +126,12 @@ def slerp(q1, q2, t):
     # Calculate the interpolation angle
     omega = np.arccos(dot)
     sin_omega = np.sin(omega)
+
+    # If the quaternions are very close, just linearly interpolate
+    if abs(sin_omega) < 1e-6:
+        #print("Linear")
+        return (1-t)*q1 + t*q2
+
     # Perform SLERP
     result = (np.sin((1 - t) * omega) * q1 + np.sin(t * omega) * q2) / sin_omega
     
@@ -129,28 +150,6 @@ def interpolate_path(p0, p1, q0, q1, steps):
         rotations.append(new_rot)
     return points, rotations
 
-# Rotate and tranlate camera matrix
-def rotate_camera(stage, camera_path, x):
-    # Get the camera prim
-    camera_prim = stage.GetPrimAtPath(camera_path)
-    if not camera_prim.IsValid():
-        print(f"Camera prim not found at path: {camera_path}")
-        return
-    
-    xformable = UsdGeom.Xformable(camera_prim)
-    xformable.ClearXformOpOrder()
-    transform = xformable.AddTransformOp()
-
-    #XZY -> XYZ  
-    mat = Gf.Matrix4d(
-        1, 0, 0, 0,
-        0, 0, 1, 0,
-        0, -1, 0, 0,
-        x, 0, 0, 1
-    )
-    #mat.SetRotateOnly(Gf.Rotation(Gf.Vec3d(1,0,1), -90.0))
-    transform.Set(mat)
-
 # Set pose of prim in stage
 def set_pose(stage, prim_path, position=None, orientation=None):
     prim = stage.GetPrimAtPath(str(prim_path))
@@ -158,25 +157,177 @@ def set_pose(stage, prim_path, position=None, orientation=None):
     xform.ClearXformOpOrder()
     transform = xform.AddTransformOp()
     mat = Gf.Matrix4d()
-    mat2 = Gf.Matrix4d()
-    mat2.SetIdentity()
     if position is not None:
         mat.SetTranslateOnly(Gf.Vec3d(*position))
     if orientation is not None:
         mat.SetRotateOnly(Gf.Rotation(Gf.Quaternion(orientation[-1], Gf.Vec3d(*orientation[:-1]))))
-        mat2.SetRotateOnly(Gf.Rotation(Gf.Vec3d(0,0,1), -90.0)) # Rotation correction
-    # Only manipluate the rotation and not the translation
-    rot_mat = mat.ExtractRotationMatrix()
-    rot_mat2 = mat2.ExtractRotationMatrix()
-    rot_mat *= rot_mat2
-    mat.SetRotateOnly(rot_mat)
     transform.Set(mat)
 
+'''
+def DistortPoint(x, y, camera_matrix, distortion_coefficients):
+    ((fx,_,cx),(_,fy,cy),(_,_,_)) = camera_matrix
+    pt_x, pt_y, pt_z  = (x-cx)/fx, (y-cy)/fy, np.full(x.shape, 1.0)
+    points3d = np.stack((pt_x, pt_y, pt_z), axis = -1)
+    rvecs, tvecs = np.array([0.0,0.0,0.0]), np.array([0.0,0.0,0.0])
+    cameraMatrix, distCoeffs = np.array(camera_matrix), np.array(distortion_coefficients)
+    points, jac = cv2.projectPoints(points3d, rvecs, tvecs, cameraMatrix, distCoeffs)
+    return np.array([points[:,0,0], points[:,0,1]])
+
+def Theta(x, y, camera_matrix):
+   ((fx,_,cx),(_,fy,cy),(_,_,_)) = camera_matrix
+   pt_x, pt_y, pt_z  = (x-cx)/fx, (y-cy)/fy, 1.0
+   r2 = pt_x * pt_x + pt_y * pt_y
+   theta = np.arctan2(np.sqrt(r2), 1.0)
+   return theta
+
+def poly4_00(theta, b, c, d, e):
+    return b*theta + c*np.power(theta,2) + d*np.power(theta,3) + e*np.power(theta, 4)
+'''
+
 # Create camera in stage with specified parameters
-def create_camera(stage, parent, name, k, width, height):
-    left_camera = UsdGeom.Camera.Define(stage, parent + name)
-    left_camera.CreateProjectionAttr().Set(UsdGeom.Tokens.perspective)
-    left_camera.CreateFocalLengthAttr().Set(k[0,0])
-    left_camera.CreateHorizontalApertureAttr().Set(width)
-    left_camera.CreateVerticalApertureAttr().Set(height)
-    left_camera.CreateClippingRangeAttr().Set((0.1,100000))
+# TODO needs actual parameters
+def create_camera(stage, parent, name, camera_matrix, width, height, position, stereoRole="mono"):
+    focal_length = 2.12 # 2.12 mm according to the ZED 2 specs
+    Pixel_size = 2      # in µm
+    vert_aperture = (height * focal_length) / camera_matrix[1,1]
+    horiz_aperture = (width * focal_length) / camera_matrix[0,0]
+    camera = UsdGeom.Camera.Define(stage, parent + name)
+    camera.CreateProjectionAttr().Set(UsdGeom.Tokens.perspective)
+    #camera.CreateFocalLengthAttr().Set(k[0,0])
+    camera.CreateFocalLengthAttr().Set(focal_length)
+    #camera.CreateFocalLengthAttr().Set((camera_matrix[0,0] * Pixel_size * 1e-3 + camera_matrix[1,1] * Pixel_size * 1e-3) / 2)
+    #camera.CreateHorizontalApertureAttr().Set(width)
+    camera.CreateHorizontalApertureAttr().Set(horiz_aperture)
+    #camera.CreateHorizontalApertureAttr().Set(Pixel_size * 1e-3 * width)
+    #camera.CreateVerticalApertureAttr().Set(height)
+    camera.CreateVerticalApertureAttr().Set(vert_aperture)
+    #camera.CreateVerticalApertureAttr().Set(Pixel_size * 1e-3 * height)
+    #camera.CreateFStopAttr(1.8)
+    camera.CreateClippingRangeAttr().Set((0.1,1000000))
+    camera.AddTranslateOp().Set(Gf.Vec3d(*position))
+    camera.CreateStereoRoleAttr(stereoRole)
+    # Position camera
+    #xformable = UsdGeom.Xformable(camera)
+    # Rotate camera and make it look down the +X axis with +Z upwards since cameras look down the -Z axis with +Y upwards
+    #camera.AddRotateXZYOp().Set(Gf.Vec3d(0, -90, -90))
+    '''
+    # ROS unsupported distortion model
+    # https://forums.developer.nvidia.com/t/how-to-insert-camera-intrinsic-matrix-and-distortion-coefficients-for-the-camera-other-than-fisheyepolynomial/252014/4
+    Pixel_size = 2 # in µm
+    distortion_coefficients = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    ((fx,_,cx),(_,fy,cy),(_,_,_)) = camera_matrix
+
+    # Fit the fTheta model for the points on the diagonal.
+    X = np.linspace(cx,width, width)
+    Y = np.linspace(cy,height, width)
+    theta = Theta(X, Y, camera_matrix)
+    r = np.linalg.norm(DistortPoint(X, Y, camera_matrix, distortion_coefficients) - np.array([[cx], [cy]]), axis=0)
+    order4_00_coeffs, _ = curve_fit(poly4_00, r, theta)
+
+    # The coefficient 'a' of the Ftheta model is set to zero, so that angle 0 is at pixel distance (aka radius) 0
+    Ftheta_A = [0.0] + list(order4_00_coeffs)
+    Dfov = np.rad2deg(2*poly4_00(np.linalg.norm([height/2,width/2]) , *order4_00_coeffs))
+
+    camera = UsdGeom.Camera.Define(stage, parent + name)
+    camera.AddTranslateOp().Set(Gf.Vec3d(*position))
+
+    camera = Camera(parent + name)
+    camera.set_resolution((width, height))
+    camera.set_focal_length((fx * Pixel_size * 1e-3 + fy * Pixel_size * 1e-3) / 2)  # in mm
+    camera.set_horizontal_aperture(Pixel_size * 1e-3 * width)                       # in mm
+    camera.set_vertical_aperture(Pixel_size * 1e-3 * height)                        # in mm
+    camera.set_projection_mode("perspective")
+    camera.set_projection_type("fisheyePolynomial")
+    camera.set_stereo_role(stereoRole)
+    camera.set_fisheye_polynomial_properties(
+        nominal_width=width, nominal_height=height,
+        optical_centre_x=cx, optical_centre_y=cy,
+        max_fov = Dfov, polynomial = Ftheta_A)
+    camera.set_clipping_range(near_distance=0.0, far_distance=1000000.0)
+    '''
+
+# Create ROS graph to publish image and camera info data to Isaac ESS DNN model or ZED 2 Wrapper node for disparity images
+def create_ros_graph(stage):
+    # enable ROS bridge extension
+    #enable_extension("omni.isaac.ros2_bridge")
+
+    ROS_CAMERA_GRAPH_PATH = "/ROS_Camera"
+    LEFT_CAMERA_STAGE_PATH = "/World/Robot/ZED2/CameraLeft"
+    RIGHT_CAMERA_STAGE_PATH = "/World/Robot/ZED2/CameraRight"
+    # Creating an on-demand push graph with cameraHelper nodes to generate ROS image publishers
+    keys = og.Controller.Keys
+    (ros_camera_graph, _, _, _) = og.Controller.edit(
+        {
+            "graph_path": ROS_CAMERA_GRAPH_PATH,
+            "evaluator_name": "push",
+            "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
+        },
+        {
+            keys.CREATE_NODES: [
+                ("OnTick", "omni.graph.action.OnTick"),
+                ("createViewportLeft", "omni.isaac.core_nodes.IsaacCreateViewport"),
+                ("createViewportRight", "omni.isaac.core_nodes.IsaacCreateViewport"),
+                ("getRenderProductLeft", "omni.isaac.core_nodes.IsaacGetViewportRenderProduct"),
+                ("getRenderProductRight", "omni.isaac.core_nodes.IsaacGetViewportRenderProduct"),
+                ("setLeftCamera", "omni.isaac.core_nodes.IsaacSetCameraOnRenderProduct"),
+                ("setRightCamera", "omni.isaac.core_nodes.IsaacSetCameraOnRenderProduct"),
+                ("leftCameraHelperRgb", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
+                ("leftCameraHelperInfo", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
+                ("rightCameraHelperRgb", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
+                ("rightCameraHelperInfo", "omni.isaac.ros2_bridge.ROS2CameraHelper"),
+            ],
+            keys.CONNECT: [
+                ("OnTick.outputs:tick", "createViewportLeft.inputs:execIn"),
+                ("OnTick.outputs:tick", "createViewportRight.inputs:execIn"),
+                ("createViewportLeft.outputs:execOut", "getRenderProductLeft.inputs:execIn"),
+                ("createViewportLeft.outputs:viewport", "getRenderProductLeft.inputs:viewport"),
+                ("createViewportRight.outputs:execOut", "getRenderProductRight.inputs:execIn"),
+                ("createViewportRight.outputs:viewport", "getRenderProductRight.inputs:viewport"),
+                ("getRenderProductLeft.outputs:execOut", "setLeftCamera.inputs:execIn"),
+                ("getRenderProductLeft.outputs:renderProductPath", "setLeftCamera.inputs:renderProductPath"),
+                ("getRenderProductRight.outputs:execOut", "setRightCamera.inputs:execIn"),
+                ("getRenderProductRight.outputs:renderProductPath", "setRightCamera.inputs:renderProductPath"),
+                ("setLeftCamera.outputs:execOut", "leftCameraHelperRgb.inputs:execIn"),
+                ("setLeftCamera.outputs:execOut", "leftCameraHelperInfo.inputs:execIn"),
+                ("setRightCamera.outputs:execOut", "rightCameraHelperRgb.inputs:execIn"),
+                ("setRightCamera.outputs:execOut", "rightCameraHelperInfo.inputs:execIn"),
+                ("getRenderProductLeft.outputs:renderProductPath", "leftCameraHelperRgb.inputs:renderProductPath"),
+                ("getRenderProductLeft.outputs:renderProductPath", "leftCameraHelperInfo.inputs:renderProductPath"),
+                ("getRenderProductRight.outputs:renderProductPath", "rightCameraHelperRgb.inputs:renderProductPath"),
+                ("getRenderProductRight.outputs:renderProductPath", "rightCameraHelperInfo.inputs:renderProductPath"),
+            ],
+            keys.SET_VALUES: [
+                ("createViewportLeft.inputs:viewportId", 0),
+                ("createViewportRight.inputs:viewportId", 1),
+                ("leftCameraHelperRgb.inputs:frameId", "sim_camera"),
+                ("leftCameraHelperRgb.inputs:topicName", "left/image_rect"),
+                ("leftCameraHelperRgb.inputs:type", "rgb"),
+                ("leftCameraHelperInfo.inputs:frameId", "sim_camera"),
+                ("leftCameraHelperInfo.inputs:topicName", "left/camera_info"),
+                ("leftCameraHelperInfo.inputs:type", "camera_info"),
+                ("rightCameraHelperRgb.inputs:frameId", "sim_camera"),
+                ("rightCameraHelperRgb.inputs:topicName", "right/image_rect"),
+                ("rightCameraHelperRgb.inputs:type", "rgb"),
+                ("rightCameraHelperRgb.inputs:stereoOffset", [-43.717472076416016, 0.0]),
+                ("rightCameraHelperInfo.inputs:frameId", "sim_camera"),
+                ("rightCameraHelperInfo.inputs:topicName", "right/camera_info"),
+                ("rightCameraHelperInfo.inputs:type", "camera_info"),
+                ("rightCameraHelperInfo.inputs:stereoOffset", [-43.717472076416016, 0.0]),
+            ],
+        },
+    )
+
+    set_targets(
+        prim=stage.GetPrimAtPath(ROS_CAMERA_GRAPH_PATH + "/setLeftCamera"),
+        attribute="inputs:cameraPrim",
+        target_prim_paths=[LEFT_CAMERA_STAGE_PATH],
+    )
+    set_targets(
+        prim=stage.GetPrimAtPath(ROS_CAMERA_GRAPH_PATH + "/setRightCamera"),
+        attribute="inputs:cameraPrim",
+        target_prim_paths=[RIGHT_CAMERA_STAGE_PATH],
+    )
+
+    # Run the ROS Camera graph once to generate ROS image publishers in SDGPipeline
+    og.Controller.evaluate_sync(ros_camera_graph)
+    print("> ROS Graph created")

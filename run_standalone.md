@@ -1,20 +1,5 @@
-# Running standalone Isaac Sim Python scripts in Visual Studio Code
-## Setup
-### Patch Isaac Sim 2022.1.1 .vscode directory
-Copy over the provided `.vscode` directory into the Isaac Sim `.vscode` directory
-* Linux
-```
-export ISAAC_SIM="$HOME/.local/share/ov/pkg/isaac_sim-2022.1.1"
-cp -RT ~/Isaac-Sim-Playground/.vscode $ISAAC_SIM
-```
-* Windows
-```
-set ISAAC_SIM="%LOCALAPPDATA%\ov\pkg\isaac_sim-2022.1.1"
-copy /Y /I %USERPROFILE%\Isaac-Sim-Playground\.vscode %ISAAC_SIM%\.vscode
-```
-## Running and working with standalone Isaac Sim Python scripts
+# Running standalone Isaac Sim Python scripts
 ### Working with the Core API in Visual Studio Code
-After patching the VSCode workspace of the Isaac Sim package, to get Autocomplete and IntelliSense while working with the Isaac Sim Core API inside VSCode, open the folder inside VSCode where the `.vscode` directory is located.
 
 Every standalone Python script that makes use of the Omniverse API, needs to be inside the Isaac Sim directory to get IntelliSense and Autocomplete while working on it.
 

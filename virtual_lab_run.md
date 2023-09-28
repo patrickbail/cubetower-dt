@@ -1,5 +1,6 @@
 # Generating Synthetic Data from a Virtual Lab Run
 ## Setup
+### Workstation
 Copy over the provided `isaacGenSynData` directory into the Isaac Sim directory
 * Linux
 ```
@@ -11,18 +12,38 @@ cp -RT ~/Isaac-Sim-Playground/isaacGenSynData $ISAAC_SIM
 set ISAAC_SIM="%LOCALAPPDATA%\ov\pkg\isaac_sim-2022.1.1"
 copy /Y /I %USERPROFILE%\Isaac-Sim-Playground\isaacGenSynData %ISAAC_SIM%\isaacGenSynData
 ```
-The `isaacGenSynData` directory contains `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and two USD files `acoposobj_scaled.usd` and `ZED2_scaled.usd` for the virtual enviroment, which need to be in the same directory as `virtual_lab_run.py`. The two USD files `acoposobj_scaled.usd` and `ZED2_scaled.usd` can also be put into the local or remote Nucleus server, however the `virtual_lab_run.py` script has to be modified. In addition, a file `lerp_test.json` is provided as a template for testing linear interpolation between two points, if a path is not needed for the simulation.
+### Docker
+Run the following docker command to start the Isaac Sim container with the codebase:
+```
+docker run --name isaac-sim --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \ 
+-v ~/Desktop/Isaac-Sim-Playground:/isaac-sim/Isaac-Sim-Playground \ 
+-v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache/Kit:rw \
+-v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+-v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \ 
+-v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+-v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+-v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+-v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+-v ~/docker/isaac-sim/documents:/root/Documents:rw \
+nvcr.io/nvidia/isaac-sim:2022.2.1
+```
+Inside the docker container execute the following script to setup the environmnet:
+```
+./Isaac-Sim-Playground/install/debug_install.sh
+```
+
+The `isaacGenSynData` directory contains `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and two JSON files `path_test.json` and `lerp_test.json`. The `path_test.json` is a demonstration of a trajectory file that `virtual_lab_run.py` needs as an input with the -p flag. The simulator will follow the path inside the provided JSON file. In addition, a file `lerp_test.json` is available as a template for testing linear interpolation between two points, if a path is not needed for the simulation.
 
 ## Start a Virtual Lab Run and generate synthetic data
 Simulating the real-world scenario can be done by running the python script like every other standalone Isaac Sim python script, which was demonstraed in the [Run Standalone](run_standalone.md) section. \
 Run a simulation via:
 * Linux
 ```
-./python.sh ./isaacGenSynData/virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
+./python.sh ./Isaac-Sim-Playground/isaacGenSynData/virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
 ```
 * Windows
 ```
-./python.bat .\isaacGenSynData\virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
+./python.bat .\Isaac-Sim-Playground\isaacGenSynData\virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
 ```
 
 Arguments:
@@ -32,3 +53,4 @@ Arguments:
 * -s | --stereo: If specified, a scan with stereo vision will be done and images at every step will be saved in `_out_image` 
 * -L | --lerp: If specified, a linear interpolation between two poses will be done, instead of using the path provided via the -p argument
 * -E | --early_stopping: If specified a value, simulation will be stopped early according to the provided value
+* --livestream: Starts a livestream service, such that a Streaming Client can connect to a remote Isaac Sim instance
