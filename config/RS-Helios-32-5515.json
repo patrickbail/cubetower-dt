@@ -25,7 +25,7 @@
         "minReflectance": 0.1, 
         "minReflectanceRange": 90.0, "_comment10": "90m @10% p.10",
         "wavelengthNm": 905.0, "_commentA": "905 nm p.10",
-        "pulseTimeNs": 5556,
+        "pulseTimeNs": 1736.25, "_commentB": "(55.56μs / 32)*1000ns/μs p.24 (No artifacts with a pulseTimeNs of 5556ns)",
   
         "azimuthErrorMean": 0.0,
         "azimuthErrorStd": 0.015,
@@ -33,13 +33,13 @@
         "elevationErrorStd": 0.0,
     
     
-        "reportTypes": "Strongest, Last, First, Dual", "_commentB": "p.13",
+        "reportTypes": "Strongest, First, Last", "_commentC": "p.13",
         "maxReturns": 3,
     
         "scanRatesHz": [10.0, 20.0],
-        "scanRateBaseHz": 10.0,
+        "scanRateBaseHz": 60.0, "_commentG": "With a 60Hz scanRateBaseHz the RTX LiDAR shoots pattern all at once",
     
-        "reportRateBaseHz": 180000, "_commentC": "10Hz * angle (360°)/ horizontal resolution (0.2°) p.10",
+        "reportRateBaseHz": 180000, "_commentE": "10Hz * angle (360°)/ horizontal resolution (0.2°) p.10",
     
         "numberOfEmitters": 32,
     

@@ -37,7 +37,7 @@ import os
 import argparse
 import numpy as np
 from threading import Thread
-from lab_utility import create_camera, set_pose, load_data, save_rgb, save_pcd, create_ros_graph
+from lab_utility import create_camera, set_pose, load_data, save_rgb, save_pcd
 
 #isaac-core
 from omni.isaac.core import World
@@ -445,7 +445,7 @@ if __name__ == "__main__":
             # Create the debug draw pipeline in the post process graph
             writer = rep.writers.get("RtxLidar" + "DebugDrawPointCloud")
             writer.attach([render_product_path])
-            print("RTX Lidar created")
+        print("> RTX Lidar created")
     
     #lab_run._world.play()
 
