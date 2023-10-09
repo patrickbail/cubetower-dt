@@ -39,18 +39,21 @@ Simulating the real-world scenario can be done by running the python script like
 Run a simulation via:
 * Linux
 ```
-./python.sh ./Isaac-Sim-Playground/isaacGenSynData/virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
+./python.sh ./Isaac-Sim-Playground/isaacGenSynData/virtual_lab_run.py -p <path_to_json> [-s] [-l] [-c]
 ```
 * Windows
 ```
-./python.bat .\Isaac-Sim-Playground\isaacGenSynData\virtual_lab_run.py -p <path_to_json> [-i] [-l] [-s]
+./python.bat .\Isaac-Sim-Playground\isaacGenSynData\virtual_lab_run.py -p <path_to_json> [-s] [-l] [-c]
 ```
 
 Arguments:
 * -p | --path: A .json file that specifies the path the robot takes. Extracted path or pose data generated from `parse_bag.py` belongs here
-* -i | --interpolate: If provided a .json file of recorded image or pointcloud data with timestamps then interpolate missing poses. Extracted data generated from `parse_bag.py` belongs here
-* -l | --lidar: If specified, a lidar scan will be done and a registered pointcloud will be saved in `_out_pcd`
-* -s | --stereo: If specified, a scan with stereo vision will be done and images at every step will be saved in `_out_image` 
-* -L | --lerp: If specified, a linear interpolation between two poses will be done, instead of using the path provided via the -p argument
+* -s | --sim_data: If provided a .json file of recorded image or pointcloud data with timestamps, then interpolate missing poses. Extracted data generated from `parse_bag.py` belongs here
+* --no_interpolation: If specified instead of interpolating poses, assign pose of nearest timestamp match
+* -l | --rtx_lidar: If specified, a lidar scan will be done with the RTX LiDAR
+* --physx_lidar: If specified, a lidar scan will be done with the PhysX LiDAR
+* -c | --stereo_camera: If specified, a scan with stereo vision will be done 
+* --lerp_path: If specified, a linear interpolation between two poses provided in a .json file will be done, instead of using the path provided via the -p argument
 * -E | --early_stopping: If specified a value, simulation will be stopped early according to the provided value
 * --livestream: Starts a livestream service, such that a Streaming Client can connect to a remote Isaac Sim instance
+* -save_to_file: If specified synthetica data will be saved on the harddrive in either `_out_pcd`, `_out_physx_pcd` or `_out_image`

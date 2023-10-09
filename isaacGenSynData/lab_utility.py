@@ -1,25 +1,25 @@
 #python
-import cv2
+#import cv2
 import json
-import math
+#import math
 import numpy as np
-import open3d as o3d
+import pyvista as pv
 from PIL import Image
-from scipy.optimize import curve_fit
+#from scipy.optimize import curve_fit
 from scipy.spatial.transform import Rotation
 
 #isaac-core
-from omni.isaac.core.utils.prims import set_targets
-from omni.isaac.core.utils.extensions import enable_extension 
-from omni.isaac.sensor import Camera
+#from omni.isaac.core.utils.prims import set_targets
+#from omni.isaac.core.utils.extensions import enable_extension 
+#from omni.isaac.sensor import Camera
 
 #omniverse
-import omni.graph.core as og
+#import omni.graph.core as og
 from pxr import UsdGeom, Gf
 
 # Load position and rotation data and interpolate points if specified
 # TODO when interpolating remember indicices of timestamps that have no interpolated pose
-def load_data(file_path, file_sensor, isLerp):
+def load_data(file_path, file_sensor, isLerp, isInterpolate):
     points = []
     rotations = []
     with open(file_path, 'r', encoding='utf-8') as jsonf:
@@ -40,11 +40,16 @@ def load_data(file_path, file_sensor, isLerp):
 
         # Change coordinate system to origin position
         # Extract the first position and rotation
+
         origin_position = points[0]
         origin_rotation = rotations[0]
 
         # Translate the positions
         translated_positions = points - origin_position
+
+        # Additional shift
+        shift = np.array([-0.1, -0.405, 0]) #-0.08 -0.429
+        translated_positions -= shift
 
         # Rotate the positions
         origin_rotation_conjugate = Rotation.from_quat(origin_rotation).inv().as_quat() # Get inverse of new origin orientation
@@ -91,13 +96,19 @@ def load_data(file_path, file_sensor, isLerp):
                         p1 = point_intervals[i][1]
                         d = (sensor_t - start_t)/(end_t - start_t)
                         pd = (1-d)*p0 + d*p1
-                        path_points.append(pd)
+                        if isInterpolate:
+                            path_points.append(pd)
+                        else:
+                            path_points.append(p0)
                         # SLERP
                         q0 = rotation_intervals[i][0]
                         q1 = rotation_intervals[i][1]
                         qd = slerp(q0, q1, d)
                         #path_rotations.append(rotations[i])
-                        path_rotations.append(qd)
+                        if isInterpolate:
+                            path_rotations.append(qd)
+                        else:
+                            path_rotations.append(q0)
 
             points = path_points
             rotations = path_rotations
@@ -114,9 +125,9 @@ def save_rgb(rgb_data, file_name):
 
 # Save pcd to file
 def save_pcd(pcd_data, file_name):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(pcd_data)
-    o3d.io.write_point_cloud(file_name, pcd)
+    point_cloud = pv.PolyData()
+    point_cloud.points = pcd_data
+    point_cloud.save(file_name)
 
 # SLERP implementation
 def slerp(q1, q2, t):
@@ -190,7 +201,6 @@ def poly4_00(theta, b, c, d, e):
 '''
 
 # Create camera in stage with specified parameters
-# TODO needs actual parameters
 def create_camera(stage, parent, name, camera_matrix, width, height, position, stereoRole="mono"):
     focal_length = 2.12 # 2.12 mm according to the ZED 2 specs
     Pixel_size = 2      # in µm

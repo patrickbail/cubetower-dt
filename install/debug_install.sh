@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Install open3d and opencv for virtual_lab_run.py
-./python.sh -m pip install open3d
-./python.sh -m pip install opencv-python
+# Install pyvista for lab_utility.py
+#./python.sh -m pip install open3d
+#./python.sh -m pip install opencv-python
+./python.sh -m pip install pyvista
 
 # Fix the livestream
 sed -i '550s/.*/"omni.isaac.quadruped" = {order = 10}/' ./apps/omni.isaac.sim.python.kit

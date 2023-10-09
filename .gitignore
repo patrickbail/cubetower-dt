@@ -1,6 +1,7 @@
-_out_image/
-_out_pcd/
+_out*/
+results/
 tests/
+final_cube_scan/
 
 __pycache__/
 .thumbs/

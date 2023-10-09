@@ -1,7 +1,9 @@
 import os
 import cv2
 import json
+import struct
 import sqlite3
+import ctypes
 import argparse
 import numpy as np
 import open3d as o3d
@@ -12,10 +14,19 @@ from rclpy.serialization import deserialize_message
 from cv_bridge import CvBridge
 from sensor_msgs import point_cloud2
 
-#ROS2 has to be build on the systen, follow installation steps: https://docs.ros.org/en/foxy/Installation/Alternatives/Ubuntu-Development-Setup.html
-#Follow the steps to install cv_bridge https://github.com/ros-perception/vision_opencv/tree/rolling/cv_bridge
-#Setup the ROS2 enviroment first before running the script via: . ~/ros2_foxy/install/local_setup.bash
-# point_cloud2.py in ~/ros2_foxy/install/sensor_msgs/lib/python3.8/site-packages/sensor_msgs
+# ROS2 has to be build on the systen, follow installation steps: https://docs.ros.org/en/foxy/Installation/Alternatives/Ubuntu-Development-Setup.html
+# Follow the steps to install cv_bridge https://github.com/ros-perception/vision_opencv/tree/rolling/cv_bridge
+# Setup the ROS2 enviroment first before running the script via: . ~/ros2_foxy/install/local_setup.bash
+# ~/ros2_foxy/install/sensor_msgs/lib/python3.8/site-packages/sensor_msgs point_cloud2.py
+
+# For building own ROS Docker container with ZED SDK and wrapper node
+# ZED SDK on ROS 2 docker container
+# wget https://download.stereolabs.com/zedsdk/4.0/cu118/ubuntu20 -O ZED_SDK_Ubuntu22_cuda11.8_v4.0.0.zstd.run
+# chmod +x ZED_SDK_Ubuntu22_cuda11.8_v4.0.0.zstd.run
+# ./ZED_SDK_Ubuntu22_cuda11.8_v4.0.0.zstd.run -- silent
+# Rest on here https://github.com/stereolabs/zed-ros2-wrapper
+# Or simply follow this guide, for prebuild docker:
+# https://github.com/stereolabs/zed-ros2-wrapper/tree/master/docker
 
 #bag_file = 'zed_kuba_1_0.db3'
 #bag_file = '../lidar_kuba_1/lidar_kuba_1_0.db3'
@@ -27,6 +38,9 @@ from sensor_msgs import point_cloud2
 #topic_name = '/zed2/zed_node/right_raw/image_raw_color'
 #topic_name = '/zed2/zed_node/depth/depth_registered'
 #topic_name = '/rslidar_points'
+#topic_name = '/zed2/zed_node/point_cloud/cloud_registered'
+
+#Timestamps for old data 1684837152 1684837275
 
 class BagFileParser():
     def __init__(self, bag_file):
@@ -43,6 +57,51 @@ class BagFileParser():
 
     def get_topic_type(self, topic_name):
         return self.topic_type[topic_name]
+    
+    def split_rgb_field(self, pcd):
+        new_pcd = []
+        for data in pcd:
+            test = data[3]
+            s = struct.pack('>f' ,test)
+            i = struct.unpack('>l',s)[0]
+            pack = ctypes.c_uint32(i).value
+            r = int((pack & 0x00FF0000)>> 16)
+            g = int((pack & 0x0000FF00)>> 8)
+            b = int((pack & 0x000000FF))
+            new_pcd.append([data[0], data[1], data[2], r/255.0, g/255.0, b/255.0])
+        return np.asarray(new_pcd)
+    
+    def split_rgb_field2(self, pcd):
+        '''Takes an array with a named 'rgb' float32 field, and returns an array in which
+        this has been split into 3 uint 8 fields: 'r', 'g', and 'b'.
+
+        (pcl stores rgb in packed 32 bit floats)
+        '''
+        rgb_arr = pcd[:, 3].astype(np.uint32)
+        print(rgb_arr.dtype)
+        #rgb_arr.dtype = np.uint32
+        r = np.asarray((rgb_arr >> 16) & 255, dtype=np.uint8)
+        g = np.asarray((rgb_arr >> 8) & 255, dtype=np.uint8)
+        b = np.asarray(rgb_arr & 255, dtype=np.uint8)
+        
+        # create a new array, without rgb, but with r, g, and b fields
+        new_dtype = []
+        new_dtype.append(('r', np.uint8))
+        new_dtype.append(('g', np.uint8))
+        new_dtype.append(('b', np.uint8))    
+        new_cloud_arr = np.zeros(rgb_arr.shape, new_dtype)
+        
+        # fill in the new array
+        for field_name in new_cloud_arr.dtype.names:
+            if field_name == 'r':
+                new_cloud_arr[field_name] = r
+            elif field_name == 'g':
+                new_cloud_arr[field_name] = g
+            elif field_name == 'b':
+                new_cloud_arr[field_name] = b
+            else:
+                new_cloud_arr[field_name] = pcd[field_name]
+        return new_cloud_arr
     
     #[message0, message1, ...]
     def get_messages(self, topic_name):
@@ -74,23 +133,25 @@ class BagFileParser():
         print("Exiting while loop")
         raise Exception
     
-    def parse_batches(self, topic_name, file_name):
+    def parse_batches(self, topic_name, file_name, timestamp=None):
         topic_type = self.get_topic_type(topic_name)
         total_list = []
         offset = 0
+        batch_offset = 0
         if (topic_type == "sensor_msgs/msg/Image"):
             # Create directory to save images
-            file_path = os.path.join(os.getcwd(), "raw_img", "")
+            file_path = os.path.join(os.getcwd(), "raw_rgb", "")
             dir_name = os.path.dirname(file_path)
             os.makedirs(dir_name, exist_ok=True)
             if not file_name:
                 file_name = "img"
             try:
                 for deserialized_data in self.get_messages_in_batches(topic_name):
-                    print(f"Getting Batch {offset}...")
-                    parsed_data = self.pares_image(deserialized_data, offset, dir_name, file_name)
+                    print(f"Getting Batch {batch_offset}...")
+                    parsed_data, i = self.pares_image(deserialized_data, offset, dir_name, file_name, timestamp=timestamp)
                     total_list += parsed_data
-                    offset += 100
+                    offset += i + 1
+                    batch_offset += 100
             except Exception:
                 print("Done parsing all batches")
         elif (topic_type == 'sensor_msgs/msg/PointCloud2'):
@@ -102,10 +163,11 @@ class BagFileParser():
                 file_name = "pcd"
             try:
                 for deserialized_data in self.get_messages_in_batches(topic_name):
-                    print(f"Getting Batch {offset}...")
-                    parsed_data = self.parse_pointcloud(deserialized_data, offset, dir_name, file_name)
+                    print(f"Getting Batch {batch_offset}...")
+                    parsed_data, i = self.parse_pointcloud(deserialized_data, offset, dir_name, file_name, timestamp=timestamp)
                     total_list += parsed_data
-                    offset += 100
+                    offset += i + 1
+                    batch_offset += 100
             except Exception:
                 print("Done parsing all batches")
         return total_list
@@ -123,10 +185,13 @@ class BagFileParser():
         return header_dict
     
     #[{"header": header, "pose": {"position": [x1, y1, z1], "orientation": [x2, y2, z2, w]}}, ...]
-    def parse_pose_stamped(self, deserialized_data, omit_frame_id=True):
+    def parse_pose_stamped(self, deserialized_data, timestamp=None, omit_frame_id=True):
         pose_stamped_list = []
         for pose_stamped in deserialized_data:
             pose_stamp = self.parse_header(pose_stamped, omit_frame_id=omit_frame_id)
+            if timestamp:
+                if not(timestamp[0] <= pose_stamp["header"]["sec"] <= timestamp[1]):
+                    continue
             pose_stamp["pose"] = {
                                     "position": [pose_stamped.pose.position.x, pose_stamped.pose.position.y, pose_stamped.pose.position.z], 
                                     "orientation": [pose_stamped.pose.orientation.x, pose_stamped.pose.orientation.y, 
@@ -144,11 +209,18 @@ class BagFileParser():
         return path_map
     
     #[{"header": header, "height": height, "width": width, "encoding": encoding, "is_bigendian": is_bigendian}, ...]
-    def pares_image(self, deserialized_data, offset, dir_name, file_name):
+    def pares_image(self, deserialized_data, offset, dir_name, file_name, timestamp=None):
         bridge = CvBridge()
         image_list = []
-        for i, image in enumerate(deserialized_data):
+        i = -1
+        for image in deserialized_data:
             image_dict = self.parse_header(image, omit_frame_id=False)
+            if timestamp:
+                if not(timestamp[0] <= image_dict["header"]["sec"] <= timestamp[1]):
+                    continue
+                i += 1
+            else:
+                i += 1
             image_dict["height"] = image.height
             image_dict["width"] = image.width
             image_dict["encoding"] = image.encoding
@@ -157,13 +229,20 @@ class BagFileParser():
             #Save raw rgb images 
             cv_img = bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
             cv2.imwrite(os.path.join(dir_name, f"{i + offset}_{file_name}.png"), cv_img)
-        return image_list
+        return image_list, i
     
     #[{"header": header, "height": height, "width": width, "fields": [fields, ...], "is_bigendian": is_bigendian, "point_step": point_step, "is_dense": is_dense}, ...]
-    def parse_pointcloud(self, deserialized_data, offset, dir_name, file_name):
+    def parse_pointcloud(self, deserialized_data, offset, dir_name, file_name, timestamp=None):
         pointcloud_list = []
-        for i, pointcloud in enumerate(deserialized_data):
+        i = -1
+        for pointcloud in deserialized_data:
             pointcloud_dict = self.parse_header(pointcloud, omit_frame_id=False)
+            if timestamp:
+                if not(timestamp[0] <= pointcloud_dict["header"]["sec"] <= timestamp[1]):
+                    continue
+                i += 1
+            else:
+                i += 1
             pointcloud_dict["height"] = pointcloud.height
             pointcloud_dict["width"] = pointcloud.width
             pointcloud_dict["fields"] = [{"name": pointfield.name, "offset": pointfield.offset, "datatype": pointfield.datatype, "count": pointfield.count} 
@@ -174,17 +253,26 @@ class BagFileParser():
             pointcloud_dict["is_dense"] = pointcloud.is_dense
             pointcloud_list.append(pointcloud_dict)
             #Save raw pointcloud data
-            gen = np.array(point_cloud2.read_points_list(pointcloud, skip_nans=True))
             pcd = o3d.geometry.PointCloud()
-            pcd.points = o3d.utility.Vector3dVector(gen[:, :-1])
             #Create RGB values from intensity
-            intensity = np.log1p(gen[:, -1])
-            intensity_normalized = (intensity - np.min(intensity)) / (np.max(intensity) - np.min(intensity))
-            cmap = plt.get_cmap('RdYlGn')
-            colors = cmap(intensity_normalized)[:, :3]
-            pcd.colors = o3d.utility.Vector3dVector(colors)
+            if pointcloud_dict["fields"][-1]["name"] == "intensity":
+                gen = np.array(point_cloud2.read_points_list(pointcloud, skip_nans=True))
+                pcd.points = o3d.utility.Vector3dVector(gen[:, :-1])
+                intensity = np.log1p(gen[:, -1])
+                intensity_normalized = (intensity - np.min(intensity)) / (np.max(intensity) - np.min(intensity))
+                cmap = plt.get_cmap('RdYlGn')
+                colors = cmap(intensity_normalized)[:, :3]
+                pcd.colors = o3d.utility.Vector3dVector(colors)
+            #Get RGB values
+            elif pointcloud_dict["fields"][-1]["name"] == "rgb":
+                gen = self.split_rgb_field(np.array(point_cloud2.read_points_list(pointcloud, skip_nans=True)))
+                pcd.points = o3d.utility.Vector3dVector(gen[:, :3])
+                pcd.colors = o3d.utility.Vector3dVector(gen[:, 3:])
+            else:
+                gen = np.array(point_cloud2.read_points_list(pointcloud, skip_nans=True))
+                pcd.points = o3d.utility.Vector3dVector(gen)
             o3d.io.write_point_cloud(os.path.join(dir_name, f"{i + offset}_{file_name}.ply"), pcd)
-        return pointcloud_list
+        return pointcloud_list, i
     
     def export_to_json(self, json_obj, topic_name, bag_file):
         dir_name = os.path.dirname(bag_file)
@@ -215,6 +303,9 @@ if __name__ == "__main__":
         "-t", "--topic", required=True, type=str, default=None, help="Name of topic from which data should be extracted"
     )
     arg_parser.add_argument(
+        "-T", "--timestamp", type=int, default=None, nargs=2, help="Data will only be parsed between the given timestamps"
+    )
+    arg_parser.add_argument(
         "-n", "--name", type=str, default=None, help="If specified, name of the outgoing saved .png or .ply files will be changed"
     )
     arg_parser.add_argument(
@@ -231,12 +322,14 @@ if __name__ == "__main__":
     if args.topic is None:
         raise ValueError(f"No topic name specified via --topic argument")
     
+    print(args.timestamp)
+    
     parser = BagFileParser(args.bag)
     topic_type = parser.get_topic_type(args.topic)
     
     if (topic_type == "sensor_msgs/msg/Image" or topic_type == 'sensor_msgs/msg/PointCloud2'):
         print("Parsing batches...")
-        parsed_data = parser.parse_batches(args.topic, args.name)
+        parsed_data = parser.parse_batches(args.topic, args.name, timestamp=args.timestamp)
 
     else:
         print("Starting to deserialize...")
@@ -251,13 +344,10 @@ if __name__ == "__main__":
             if args.visualize_path:
                 viz_path(parsed_data)
         elif topic_type == 'geometry_msgs/msg/PoseStamped':
-            parsed_data = parser.parse_pose_stamped(deserialized_data, omit_frame_id=False)
+            parsed_data = parser.parse_pose_stamped(deserialized_data, timestamp=args.timestamp, omit_frame_id=False)
         print("Done with parsing")
 
     if args.export_to_json:
         print("Exporting to json...")
         parser.export_to_json(parsed_data, args.topic, args.bag)
         print("Done with exporting")
-    
-    
-    

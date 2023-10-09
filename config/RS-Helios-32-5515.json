@@ -25,7 +25,7 @@
         "minReflectance": 0.1, 
         "minReflectanceRange": 90.0, "_comment10": "90m @10% p.10",
         "wavelengthNm": 905.0, "_commentA": "905 nm p.10",
-        "pulseTimeNs": 1736.25, "_commentB": "(55.56μs / 32)*1000ns/μs p.24 (No artifacts with a pulseTimeNs of 5556ns)",
+        "pulseTimeNs": 5556, "_commentB": "(55.56μs / 32)*1000ns/μs=1736.25 p.24 (No artifacts with a pulseTimeNs of 5556ns)",
   
         "azimuthErrorMean": 0.0,
         "azimuthErrorStd": 0.015,
