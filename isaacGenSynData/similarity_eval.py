@@ -2,9 +2,7 @@ import os
 import cv2
 import json
 #import pptk
-import copy
-import random
-#import skimage
+import skimage
 import numpy as np
 import open3d as o3d
 import point_cloud_utils as pcu
@@ -25,34 +23,6 @@ def load_image(file, no_alpha=True):
         image = image[:,:,:3]
     return image[:,:,::-1].copy()
 
-def sample_gaussian(mu, sigma, shape=1):
-    return np.random.normal(mu, sigma, shape)
-
-def indices(image):
-    for v in range(image.shape[0]):
-        for u in range(image.shape[1]):
-            yield u,v
-
-def gaussian_noise(I, PROBABILITY = 0.5, SIGMA = 200):
-    for v, u in indices(I):
-        for c in range(I.shape[2]):
-            if random.random() < PROBABILITY: I[u,v,c] += sample_gaussian(0, SIGMA)[0]
-    return I
-
-def show(*images, titles=None, figsize=None):
-    ROWS, COLS = 1, len(images)
-    if figsize is not None:
-        plt.figure(figsize=(18,6))
-    for i, img in enumerate(images):
-        plt.subplot(ROWS, COLS, i+1)
-        if titles is not None:
-            plt.title(titles[i])
-        if len(img.shape) == 3:
-            plt.imshow(img[:,:,::-1])
-        else:
-            plt.imshow(img)
-    plt.show()
-
 class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
@@ -69,6 +39,7 @@ def export_to_json(json_obj, file_name, dir_name):
         json.dump(json_obj, f, cls=NumpyArrayEncoder)
 
 def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, offset=0, max_p=255, cut_off=None):
+    # Priority queues for listing top k results
     rmse_q = PriorityQueue()
     psnr_q = PriorityQueue()
     sre_q = PriorityQueue()
@@ -81,6 +52,7 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
 
     additional_data = []
 
+    # Distance data from LiDAR scan neccessary
     lidar_eval_file = './isaacGenSynData/results/pcd/Pcd_RTX_eval_results.json'
     with open(lidar_eval_file, 'r', encoding='utf-8') as jsonf:
         lidar_eval = json.load(jsonf)
@@ -90,6 +62,7 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
     interpolated_distances = np.interp(np.linspace(0, distances.shape[0], new_size), np.arange(distances.shape[0]), distances)
 
     for i in tqdm(range(offset, limit), desc="Processing"):
+        # Cut out data
         if cut_off:
             if cut_off[0] <= i <= cut_off[1]: 
                 continue 
@@ -105,6 +78,7 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
         if blur:
             SI = cv2.GaussianBlur(SI,(5,5),0)
 
+        # Calculate similarity metrics
         rmse_r = rmse(org_img=RI, pred_img=SI, max_p=max_p)
         psnr_r = psnr(org_img=RI, pred_img=SI, max_p=max_p)
         sre_r = sre(org_img=RI, pred_img=SI)
@@ -161,7 +135,7 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
     return (rmse_q, psnr_q, sre_q, ssim_q)
 
 # cut from 1606 1960
-def test():
+def test_image_similarity():
     num_imgs = 2235 #2238 #1736
     rmse_q, psnr_q, sre_q, ssim_q = measure_img_similarity("left", num_imgs, blur=False, noise=True, toJson=True, offset=3, cut_off=[1606, 1960])
 
@@ -172,39 +146,10 @@ def test():
         print(f"SRE: {sre_q.get()}" )
         print(f"SSIM: {ssim_q.get()}")
 
-def draw_registration_result(source, target, transformation):
-    source_temp = copy.deepcopy(source)
-    target_temp = copy.deepcopy(target)
-    source_temp.paint_uniform_color([1, 0.706, 0])
-    target_temp.paint_uniform_color([0, 0.651, 0.929])
-
-    source_temp.transform(transformation)
-    o3d.visualization.draw_geometries([source_temp, target_temp],
-                                      zoom=0.4459,
-                                      front=[1, 0, 0],
-                                      lookat=[1, 0, 0],
-                                      up=[0, 0, 1])
-
-def display_inlier_outlier(cloud, ind):
-    inlier_cloud = cloud.select_by_index(ind)
-    outlier_cloud = cloud.select_by_index(ind, invert=True)
-
-    print("Showing outliers (red) and inliers (gray): ")
-    outlier_cloud.paint_uniform_color([1, 0, 0])
-    inlier_cloud.paint_uniform_color([0.8, 0.8, 0.8])
-    o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud])
-    return inlier_cloud 
-
-def closest_point(point, points):
+def closest_furthest_point(point, points):
+    # Determine the closest and furthest point from a set of points to a position
     dist_2 = np.linalg.norm(points - point, axis=1)
     return np.argmin(dist_2), np.min(dist_2), np.argmax(dist_2), np.max(dist_2)
-
-def detect_group(point_cloud, p1, p2):
-    # Calculate Euclidean distances to both target points for each point in the cloud
-    distances_to_target1 = np.linalg.norm(point_cloud - p1, axis=1)
-    distances_to_target2 = np.linalg.norm(point_cloud - p2, axis=1)
-    mask = np.where(distances_to_target1 <= distances_to_target2)
-    return mask
 
 def detect_clusters(point_cloud):
     # eps and min_samples influence on cluster detection
@@ -218,17 +163,17 @@ def detect_clusters(point_cloud):
 
     for label in unique_labels:
         if label != -1:
+            # Calculate centroids of clusters
             cluster = point_cloud[cluster_labels == label]
             centroid = np.mean(cluster, axis=0)
             cluster_centroids.append(centroid)
 
+    # Select cluster closest to origin
     distances_to_origin = [np.linalg.norm(centroid - np.zeros(3)) for centroid in cluster_centroids]
-
     closest_cluster_idx = np.argmin(distances_to_origin)
     return point_cloud[cluster_labels == unique_labels[closest_cluster_idx]]
 
-def mask_pc(*pcd, x_bound=[-0.1, 3], y_bound=[-3.2, 0], rotate=None): # old x_bound=[-0.1, 3], y_bound=[-3.2, 0] #x_bound=[0.5, 2], y_bound=[-2.4, -1.2]
-    #print(y_bound)
+def mask_pc(*pcd, x_bound=[-0.1, 3], y_bound=[-3.2, 0], rotate=None):
     results = []
     for pc in pcd:
         if rotate:
@@ -257,33 +202,26 @@ def mask_pc(*pcd, x_bound=[-0.1, 3], y_bound=[-3.2, 0], rotate=None): # old x_bo
         return tuple(results)
     
 def cleanse_pc_data(r_points, s_points, outlier_epsilon=0.4, isPhysX=False):
-    # Mask out initial known irrlevant points
-    #(x > x_bound[0]) & (x < x_bound[1]) & (y > y_bound[0]) & (y < y_bound[1])
+    # Cleanse point cloud data from unwanted information
     if isPhysX:
+        # Mask out initial known irrlevant points
         real_pcd = mask_pc(r_points, x_bound=[-0.74, 0.74], y_bound=[-2.7, -0.33], rotate=-45)
         syn_pcd = mask_pc(s_points, x_bound=[-10, 10], y_bound=[-10, 0], rotate=-45)
-        #real_pcd, syn_pcd = mask_pc(r_points, s_points)
         r_points = np.asarray(real_pcd.points)
         s_points = np.asarray(syn_pcd.points)
-        #print(s_points.shape)
 
-        #real_pcd.paint_uniform_color([1, 0.706, 0])
-        #syn_pcd.paint_uniform_color([0, 0.651, 0.929])
-        #o3d.visualization.draw_geometries([real_pcd, syn_pcd])
-
-        # Check for outliers and collect distance to origin
+        # Check for outliers
         voxel_down_real_pcd = real_pcd.voxel_down_sample(voxel_size=0.02)
         voxel_down_syn_pcd = syn_pcd.voxel_down_sample(voxel_size=0.02)
         # STD_ratio influence on outliers
         _, ind = voxel_down_real_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=3)
         real_pcd = voxel_down_real_pcd.select_by_index(ind)
         r_points = np.asarray(real_pcd.points)
-        #display_inlier_outlier(voxel_down_real_pcd, ind)
 
         # Check if objects which were not outliers exist and remove them
-        _, closest_dist, _, outlier_obj_dist = closest_point(np.zeros(3), r_points)
+        _, closest_dist, _, outlier_obj_dist = closest_furthest_point(np.zeros(3), r_points)
 
-        # Remove outlier object if necessary
+        # Remove outlier objects if necessary
         removedOutlierObj = False
         outlier_dist = outlier_obj_dist - closest_dist
         if outlier_dist > outlier_epsilon:
@@ -291,40 +229,29 @@ def cleanse_pc_data(r_points, s_points, outlier_epsilon=0.4, isPhysX=False):
             real_pcd = o3d.geometry.PointCloud()
             real_pcd.points = o3d.utility.Vector3dVector(r_points)
             r_points = np.asarray(real_pcd.points)
-
             removedOutlierObj = True
-
-            #real_pcd.paint_uniform_color([1, 0.706, 0])
-            #syn_pcd.paint_uniform_color([0, 0.651, 0.929])
-            #o3d.visualization.draw_geometries([real_pcd, syn_pcd])
 
         return real_pcd, syn_pcd, removedOutlierObj, closest_dist, outlier_dist
 
+    # Mask out initial known irrlevant points
     real_pcd, syn_pcd = mask_pc(r_points, s_points, x_bound=[-0.74, 0.74], y_bound=[-2.7, -0.33], rotate=-45)
-    #real_pcd, syn_pcd = mask_pc(r_points, s_points)
     r_points = np.asarray(real_pcd.points)
     s_points = np.asarray(syn_pcd.points)
 
-    #real_pcd.paint_uniform_color([1, 0.706, 0])
-    #syn_pcd.paint_uniform_color([0, 0.651, 0.929])
-    #o3d.visualization.draw_geometries([real_pcd, syn_pcd])
-
-    # Check for outliers and collect distance to origin
+    # Check for outliers
     voxel_down_real_pcd = real_pcd.voxel_down_sample(voxel_size=0.02)
     voxel_down_syn_pcd = syn_pcd.voxel_down_sample(voxel_size=0.02)
     # STD_ratio influence on outliers
     _, ind = voxel_down_real_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=3)
     real_pcd = voxel_down_real_pcd.select_by_index(ind)
     r_points = np.asarray(real_pcd.points)
-    #display_inlier_outlier(voxel_down_real_pcd, ind)
 
     _, ind = voxel_down_syn_pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=3.5)
     syn_pcd = voxel_down_syn_pcd.select_by_index(ind)
     s_points = np.asarray(syn_pcd.points)
-    #display_inlier_outlier(voxel_down_syn_pcd, ind)
 
     # Check if objects which were not outliers exist and remove them
-    _, closest_dist, _, outlier_obj_dist = closest_point(np.zeros(3), r_points)
+    _, closest_dist, _, outlier_obj_dist = closest_furthest_point(np.zeros(3), r_points)
 
     # Remove outlier object if necessary
     removedOutlierObj = False
@@ -341,14 +268,11 @@ def cleanse_pc_data(r_points, s_points, outlier_epsilon=0.4, isPhysX=False):
         s_points = np.asarray(syn_pcd.points)
 
         removedOutlierObj = True
-
-        #real_pcd.paint_uniform_color([1, 0.706, 0])
-        #syn_pcd.paint_uniform_color([0, 0.651, 0.929])
-        #o3d.visualization.draw_geometries([real_pcd, syn_pcd])
     
     return real_pcd, syn_pcd, removedOutlierObj, closest_dist, outlier_dist
 
 def measure_pcd_similarity(limit, noise=False, toJson=False, offset=0, threshold=0.6, cut_out=None):
+    # Priority queues for listing top k results
     chamfer_q = PriorityQueue()
     hausdorff_q = PriorityQueue()
     rmse_q = PriorityQueue()
@@ -360,7 +284,6 @@ def measure_pcd_similarity(limit, noise=False, toJson=False, offset=0, threshold
     additional_data = []
 
     for i in tqdm(range(offset, limit), desc="Processing"):
-    #for i in range(offset, limit):
         if cut_out:
             if i in cut_out:
                 continue
@@ -462,7 +385,7 @@ def measure_pcd_similarity(limit, noise=False, toJson=False, offset=0, threshold
     print(f"Mean RMSE = {mean_rmse}")
     return (chamfer_q, hausdorff_q, rmse_q)
 
-def test2():
+def test_pointcloud_similarity():
     num_pcds = 748 #1160 #1240 #1217
     cut_out = [217, 539, 541, 142, 439, 441, 679, 466, 684, 468, 38, 686, 470, 477, 688, 132, 471, 472, 89, 3, 131]
     chamfer_q, hausdorff_q, rmse_q = measure_pcd_similarity(num_pcds, noise=False, toJson=True, offset=3, cut_out=cut_out)
@@ -483,15 +406,8 @@ def plot_all_data(file, title, isImage, *metrics):
         metric_vals.append([metric, np.asarray(vals[metric]["values"])])
 
     closest_distance = np.asarray([item["Closest distance"] for item in vals["Additional data"]])
-    #lidar_closest_distance = (lidar_closest_distance - np.min(lidar_closest_distance)) / (np.max(lidar_closest_distance) - np.min(lidar_closest_distance))
 
     x = np.arange(0, metric_vals[0][1].shape[0])
-
-    #cmap = cm.get_cmap('coolwarm')
-    #cm1 = mcol.LinearSegmentedColormap.from_list("BlPuRe",["#2855fa","#e9cdfa", "#fa1414"])
-    #cnorm = mcol.Normalize(vmin=np.min(lidar_closest_distance),vmax=np.max(lidar_closest_distance))
-    #cpick = cm.ScalarMappable(norm=cnorm,cmap=cm1)
-    #cpick.set_array([])
 
     cmap=cm.get_cmap('viridis')
     cnorm = mcol.Normalize(vmin=np.min(closest_distance),vmax=np.max(closest_distance))
@@ -500,8 +416,6 @@ def plot_all_data(file, title, isImage, *metrics):
 
     fig, axes = plt.subplots(1, len(metric_vals), figsize=(15, 6))
 
-    #plt.plot(x, lidar_chamfer_vals, label='Chamfer', color="grey")
-    #plt.fill_between(x, lidar_chamfer_vals,  where=(lidar_chamfer_vals >= lidar_closest_distance), cmap=cmap, interpolate=True, alpha=0.5)
     for i in range(1, len(x)):
         for j, metric_val in enumerate(metric_vals):
             axes[j].fill_between([x[i - 1], x[i]], 0, metric_val[1][i], color=cpick.to_rgba(closest_distance[i]), interpolate=True, alpha=0.5)
@@ -534,8 +448,6 @@ def plot_all_data(file, title, isImage, *metrics):
     fig.savefig(f'./isaacGenSynData/results/{title.replace(" ", "_")}.png')
     plt.show()
 
-    #fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
 def plot_data_timeline(eval_file, isImage, metric, title):
     with open(eval_file, 'r', encoding='utf-8') as jsonf:
         val_obj = json.load(jsonf)
@@ -544,12 +456,6 @@ def plot_data_timeline(eval_file, isImage, metric, title):
 
     closest_distance = np.asarray([item["Closest distance"] for item in val_obj["Additional data"]])
 
-    #sorted_val = np.argsort(vals)[::-1]
-    #top_20_indices = sorted_val[:20]
-    #val_ind = [[vals[index], lidar_eval["Additional data"][index]["Index"]] for index in top_20_indices]
-    #for item in val_ind:
-    #    print(item)
-
     x = np.arange(0, vals.shape[0])
 
     cmap=cm.get_cmap('viridis')
@@ -557,8 +463,6 @@ def plot_data_timeline(eval_file, isImage, metric, title):
     cpick = cm.ScalarMappable(norm=cnorm,cmap=cmap)
     cpick.set_array([])
 
-    #plt.plot(x, lidar_chamfer_vals, label='Chamfer', color="grey")
-    #plt.fill_between(x, lidar_chamfer_vals,  where=(lidar_chamfer_vals >= lidar_closest_distance), cmap=cmap, interpolate=True, alpha=0.5)
     for i in range(1, len(x)):
         plt.fill_between([x[i - 1], x[i]], 0, vals[i], color=cpick.to_rgba(closest_distance[i]), interpolate=True, alpha=0.5, zorder=2.0)
     plt.xlabel('Time')
@@ -595,7 +499,6 @@ def plot_box_plot(file, title, *metrics):
 
     values = []
     for metric in metrics:
-        #values.append(np.asarray(lidar_eval[metric]["values"])[:, 0])
         values.append(np.asarray(lidar_eval[metric]["values"]))
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -618,9 +521,6 @@ def plot_box_plot(file, title, *metrics):
     ax.set_title(f'{title}: Boxplot of Metrics')
     ax.set_xlabel('Metrics')
     ax.set_ylabel('Values')
-
-    #ax.set_ylim(0.0, 0.5)
-
     ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',
                 alpha=0.5)
 
@@ -630,3 +530,50 @@ def plot_box_plot(file, title, *metrics):
     else:
         fig.savefig(f'./isaacGenSynData/results/{title.replace(" ", "_")}_{metrics[0]}.png')
     plt.show()
+
+def plot_image_contours(index):
+    real_img = f'./isaacGenSynData/real_data/final_cube_scan/raw_rgb/{index+1}_img.png'
+    syn_img = f'./isaacGenSynData/synthetic_data/_out_image/left_step_{index}.png'
+
+    RI = load_image(real_img)
+    SI = load_image(syn_img)
+
+    # Convert images to grayscale
+    RIG = cv2.cvtColor(RI, cv2.COLOR_BGR2GRAY)
+    SIG = cv2.cvtColor(SI, cv2.COLOR_BGR2GRAY)
+
+    # Get grayscale difference of images
+    #score, diff = skimage.metrics.structural_similarity(first, second, full=True, channel_axis=2)
+    _, diff = skimage.metrics.structural_similarity(RIG, SIG, full=True)
+
+    # Threshold and extract contours from difference image
+    diff = (diff * 255).astype(np.uint8)
+    _, thresh = cv2.threshold(diff, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    contours = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = contours[0] if len(contours) == 2 else contours[1]
+
+    # Highlight differences
+    mask = np.zeros(RI.shape, dtype='uint8')
+
+    # Draw contours 
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 100:
+            x, y, w, h = cv2.boundingRect(cnt)
+            cv2.rectangle(RI, (x, y), (x + w, y + h), (36,255,12), 2)
+            cv2.rectangle(SI, (x, y), (x + w, y + h), (36,255,12), 2)
+            cv2.drawContours(mask, [cnt], 0, (0,255,0), -1)
+
+    fig, axs = plt.subplots(2, 2)
+
+    axs[0, 0].imshow(RI)
+    axs[0, 1].imshow(SI)
+    axs[1, 0].imshow(diff, cmap='gray')
+    axs[1, 1].imshow(mask)
+
+    plt.show()
+
+    cv2.imwrite(f'./isaacGenSynData/results/image/real_{index+1}_contour.png', RI) 
+    cv2.imwrite(f'./isaacGenSynData/results/image/syn_{index}_contour.png', SI) 
+    cv2.imwrite(f'./isaacGenSynData/results/image/diff_{index}.png', diff) 
+    cv2.imwrite(f'./isaacGenSynData/results/image/mask_{index}.png', mask)

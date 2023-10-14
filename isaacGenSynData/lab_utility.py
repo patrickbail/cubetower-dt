@@ -1,4 +1,3 @@
-#python
 #import cv2
 import json
 #import math
@@ -18,14 +17,13 @@ from scipy.spatial.transform import Rotation
 from pxr import UsdGeom, Gf
 
 # Load position and rotation data and interpolate points if specified
-# TODO when interpolating remember indicices of timestamps that have no interpolated pose
 def load_data(file_path, file_sensor, isLerp, isInterpolate):
     points = []
     rotations = []
     with open(file_path, 'r', encoding='utf-8') as jsonf:
         path_data = json.load(jsonf)
 
-    # Do linear interpolation between two points
+    # Do linear interpolation between two points from specified file instead of using trajectory data
     if isLerp:
         p0 = np.array(path_data["p0"])
         p1 = np.array(path_data["p1"])
@@ -40,7 +38,6 @@ def load_data(file_path, file_sensor, isLerp, isInterpolate):
 
         # Change coordinate system to origin position
         # Extract the first position and rotation
-
         origin_position = points[0]
         origin_rotation = rotations[0]
 
@@ -57,7 +54,6 @@ def load_data(file_path, file_sensor, isLerp, isInterpolate):
 
         # Update the rotations by multyplying all orientations by the origin inverse
         updated_rotations = np.array([(Rotation.from_quat(q) * Rotation.from_quat(origin_rotation_conjugate)).as_quat() for q in rotations])
-        #updated_rotations = np.array([r.as_quat() for r in updated_rotations])
 
         points = rotated_positions
         rotations = updated_rotations
@@ -130,14 +126,14 @@ def save_pcd(pcd_data, file_name):
     point_cloud.save(file_name)
 
 # SLERP implementation
-def slerp(q1, q2, t):
+def slerp(q0, q1, t):
     # Normalize the input quaternions
+    q0 = q0 / np.linalg.norm(q0)
     q1 = q1 / np.linalg.norm(q1)
-    q2 = q2 / np.linalg.norm(q2)
-    dot = np.dot(q1, q2)
+    dot = np.dot(q0, q1)
     # Ensure the shortest path by reversing one quaternion if necessary
     if dot < 0.0:
-        q1 = -q1
+        q0 = -q0
         dot = -dot
     # Calculate the interpolation angle
     omega = np.arccos(dot)
@@ -146,10 +142,10 @@ def slerp(q1, q2, t):
     # If the quaternions are very close, just linearly interpolate
     if abs(sin_omega) < 1e-6:
         #print("Linear")
-        return (1-t)*q1 + t*q2
+        return (1-t)*q0 + t*q1
 
     # Perform SLERP
-    result = (np.sin((1 - t) * omega) * q1 + np.sin(t * omega) * q2) / sin_omega
+    result = (np.sin((1 - t) * omega) * q0 + np.sin(t * omega) * q1) / sin_omega
     
     return result
 
@@ -180,6 +176,7 @@ def set_pose(stage, prim_path, position=None, orientation=None):
     transform.Set(mat)
 
 '''
+# https://forums.developer.nvidia.com/t/how-to-insert-camera-intrinsic-matrix-and-distortion-coefficients-for-the-camera-other-than-fisheyepolynomial/252014/4
 def DistortPoint(x, y, camera_matrix, distortion_coefficients):
     ((fx,_,cx),(_,fy,cy),(_,_,_)) = camera_matrix
     pt_x, pt_y, pt_z  = (x-cx)/fx, (y-cy)/fy, np.full(x.shape, 1.0)
@@ -208,13 +205,10 @@ def create_camera(stage, parent, name, camera_matrix, width, height, position, s
     horiz_aperture = (width * focal_length) / camera_matrix[0,0]
     camera = UsdGeom.Camera.Define(stage, parent + name)
     camera.CreateProjectionAttr().Set(UsdGeom.Tokens.perspective)
-    #camera.CreateFocalLengthAttr().Set(k[0,0])
     camera.CreateFocalLengthAttr().Set(focal_length)
     #camera.CreateFocalLengthAttr().Set((camera_matrix[0,0] * Pixel_size * 1e-3 + camera_matrix[1,1] * Pixel_size * 1e-3) / 2)
-    #camera.CreateHorizontalApertureAttr().Set(width)
     camera.CreateHorizontalApertureAttr().Set(horiz_aperture)
     #camera.CreateHorizontalApertureAttr().Set(Pixel_size * 1e-3 * width)
-    #camera.CreateVerticalApertureAttr().Set(height)
     camera.CreateVerticalApertureAttr().Set(vert_aperture)
     #camera.CreateVerticalApertureAttr().Set(Pixel_size * 1e-3 * height)
     #camera.CreateFStopAttr(1.8)

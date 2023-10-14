@@ -28,10 +28,6 @@ from sensor_msgs import point_cloud2
 # Or simply follow this guide, for prebuild docker:
 # https://github.com/stereolabs/zed-ros2-wrapper/tree/master/docker
 
-#bag_file = 'zed_kuba_1_0.db3'
-#bag_file = '../lidar_kuba_1/lidar_kuba_1_0.db3'
-#bag_file = '../lidar_kuba_2/lidar_kuba_2_0.db3'
-#bag_file = '../lidar_kuba_3/lidar_kuba_3_0.db3'
 #topic_name = '/zed2/zed_node/path_map'
 #topic_name = '/zed2/zed_node/pose'
 #topic_name = '/zed2/zed_node/left_raw/image_raw_color'
@@ -70,38 +66,6 @@ class BagFileParser():
             b = int((pack & 0x000000FF))
             new_pcd.append([data[0], data[1], data[2], r/255.0, g/255.0, b/255.0])
         return np.asarray(new_pcd)
-    
-    def split_rgb_field2(self, pcd):
-        '''Takes an array with a named 'rgb' float32 field, and returns an array in which
-        this has been split into 3 uint 8 fields: 'r', 'g', and 'b'.
-
-        (pcl stores rgb in packed 32 bit floats)
-        '''
-        rgb_arr = pcd[:, 3].astype(np.uint32)
-        print(rgb_arr.dtype)
-        #rgb_arr.dtype = np.uint32
-        r = np.asarray((rgb_arr >> 16) & 255, dtype=np.uint8)
-        g = np.asarray((rgb_arr >> 8) & 255, dtype=np.uint8)
-        b = np.asarray(rgb_arr & 255, dtype=np.uint8)
-        
-        # create a new array, without rgb, but with r, g, and b fields
-        new_dtype = []
-        new_dtype.append(('r', np.uint8))
-        new_dtype.append(('g', np.uint8))
-        new_dtype.append(('b', np.uint8))    
-        new_cloud_arr = np.zeros(rgb_arr.shape, new_dtype)
-        
-        # fill in the new array
-        for field_name in new_cloud_arr.dtype.names:
-            if field_name == 'r':
-                new_cloud_arr[field_name] = r
-            elif field_name == 'g':
-                new_cloud_arr[field_name] = g
-            elif field_name == 'b':
-                new_cloud_arr[field_name] = b
-            else:
-                new_cloud_arr[field_name] = pcd[field_name]
-        return new_cloud_arr
     
     #[message0, message1, ...]
     def get_messages(self, topic_name):
@@ -303,7 +267,7 @@ if __name__ == "__main__":
         "-t", "--topic", required=True, type=str, default=None, help="Name of topic from which data should be extracted"
     )
     arg_parser.add_argument(
-        "-T", "--timestamp", type=int, default=None, nargs=2, help="Data will only be parsed between the given timestamps"
+        "-T", "--timestamp", type=int, default=None, nargs=2, help="Data will only be parsed between the given timestamp interval"
     )
     arg_parser.add_argument(
         "-n", "--name", type=str, default=None, help="If specified, name of the outgoing saved .png or .ply files will be changed"

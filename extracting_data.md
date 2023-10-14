@@ -8,6 +8,7 @@ Before running anything that uses ROS 2, setup the ROS 2 enviroment first via:
 ```
 . ~/ros2_foxy/install/local_setup.bash
 ```
+It is also recommended to setup a ROS 2 docker container, instead of building ROS 2 foxy locally.
 
 ## Parse and Extract  Data
 To generate synthetic data in the Virtual Lab with Isaac Sim and later analyse the accuracy of the generated synthetic data vs. real recorded data, we first need to extract and parse recorded ROS 2 bags.
@@ -28,5 +29,6 @@ Currently only topics of these types are supported:
 The following arguments can be used:
 * -b | --bag: Path to ROS/ROS 2 bag file that will be parsed
 * -t | --topic: Name of topic from which data should be extracted
+* -T | --timestamp: Data will only be parsed between the given timestamp interval
 * -n | --name: If specified, name of the outgoing saved .png or .ply files will be changed
 * -e | --export_to_json: If specified, file will not be exported to json

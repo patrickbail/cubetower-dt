@@ -1,19 +1,8 @@
 # Generating Synthetic Data from a Virtual Lab Run
 ## Setup
-### Workstation
-Copy over the provided `isaacGenSynData` directory into the Isaac Sim directory
-* Linux
-```
-export ISAAC_SIM="$HOME/.local/share/ov/pkg/isaac_sim-2022.1.1"
-cp -RT ~/Isaac-Sim-Playground/isaacGenSynData $ISAAC_SIM
-```
-* Windows
-```
-set ISAAC_SIM="%LOCALAPPDATA%\ov\pkg\isaac_sim-2022.1.1"
-copy /Y /I %USERPROFILE%\Isaac-Sim-Playground\isaacGenSynData %ISAAC_SIM%\isaacGenSynData
-```
 ### Docker
-Run the following docker command to start the Isaac Sim container with the codebase:
+It is highly recommended to utlize the docker variant, since the workstation approach might lead to dependency and path conflicts. 
+Run the following docker command to start the Isaac Sim container with the codebase of this repository:
 ```
 docker run --name isaac-sim --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \ 
 -v ~/Desktop/Isaac-Sim-Playground:/isaac-sim/Isaac-Sim-Playground \ 
@@ -32,7 +21,20 @@ Inside the docker container execute the following script to setup the environmne
 ./Isaac-Sim-Playground/install/debug_install.sh
 ```
 
-The `isaacGenSynData` directory contains `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and two JSON files `path_test.json` and `lerp_test.json`. The `path_test.json` is a demonstration of a trajectory file that `virtual_lab_run.py` needs as an input with the -p flag. The simulator will follow the path inside the provided JSON file. In addition, a file `lerp_test.json` is available as a template for testing linear interpolation between two points, if a path is not needed for the simulation.
+### Workstation
+Copy over the provided `isaacGenSynData` directory into the local Isaac Sim directory
+* Linux
+```
+export ISAAC_SIM="$HOME/.local/share/ov/pkg/isaac_sim-2022.1.1"
+cp -RT ~/Isaac-Sim-Playground/isaacGenSynData $ISAAC_SIM
+```
+* Windows
+```
+set ISAAC_SIM="%LOCALAPPDATA%\ov\pkg\isaac_sim-2022.1.1"
+copy /Y /I %USERPROFILE%\Isaac-Sim-Playground\isaacGenSynData %ISAAC_SIM%\isaacGenSynData
+```
+### Environment
+The `isaacGenSynData` directory contains `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and `similarity_eval.py`, along with four JSON files `path_test.json`, `sim_img_test.json`, `sim_lidar_test.json` and `lerp_test.json`. The `path_test.json` is a demonstration of a trajectory file that `virtual_lab_run.py` needs as an input with the -p flag. `sim_img_test.json`, `sim_lidar_test.json` are both files that recorded timestamps when the respecting data was recorded. By providing either of those two files with the flag -s to `virtual_lab_run.py`, missing pose information will be interpolated. In addition, a file `lerp_test.json` is available as a template for testing linear interpolation between two points, if a path is not needed for the simulation. `similarity_eval.py` provides means in calculating similarity measurments for synthetic image and point cloud data, in addition with functions to plot the results. The path for some files may need to be modified, depending where data was stored.
 
 ## Start a Virtual Lab Run and generate synthetic data
 Simulating the real-world scenario can be done by running the python script like every other standalone Isaac Sim python script, which was demonstraed in the [Run Standalone](run_standalone.md) section. \

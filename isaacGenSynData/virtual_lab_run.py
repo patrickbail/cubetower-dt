@@ -1,5 +1,3 @@
-import time
-START_TIME = time.time()
 from omni.isaac.kit import SimulationApp
 config = {
     "headless": True,
@@ -24,6 +22,7 @@ config = {
     "open_usd": None,
     "livesync_usd": None,
 }
+# Load SimulationApp first, before importing isaac-core or kit libraries
 simulation_app = SimulationApp(config)
 
 #python
@@ -78,7 +77,7 @@ class LabRun():
     def load_world(self):
         print("> Load simulation...")
         # Load USD stage here
-        #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/cube_setup5.usd"
+        #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/cube_setup6.usd"
         file_path = "omniverse://localhost/Users/patrick_n22/USD-Files/cube_setup6.usd" # Nucleus version
         open_stage(file_path)
         if World.instance() is None:
@@ -113,7 +112,7 @@ class LabRun():
 
     def setup_scene(self):
         print("> Setting up scene...")
-        #Get stage of current scene
+        # Get stage of current scene
         self._stage = omni.usd.get_context().get_stage()
 
         #add_reference_to_stage(
@@ -130,12 +129,13 @@ class LabRun():
         if self._isStereo:
             print("> Setting up Stereo Camera...")
 
+            # Enable opt in feature for augmenting render pipeline
             settings_i = carb.settings.acquire_settings_interface()
             settings_i.set_bool("/app/omni.graph.scriptnode/opt_in", True)
 
             # Add refrence of ZED 2 camera model 
-            zed2_asset_path = "omniverse://localhost/Users/patrick_n22/USD-Files/ZED2_scaled.usd" # Nucleus version
             #zed2_asset_path = "./Isaac-Sim-Playground/Assets/USD-Files/ZED2_scaled.usd" # Local version
+            zed2_asset_path = "omniverse://localhost/Users/patrick_n22/USD-Files/ZED2_scaled.usd" # Nucleus version
             add_reference_to_stage(usd_path=zed2_asset_path, prim_path="/World/Robot/ZED2")
             # Rotate ZED 2 camera, make it look down the +X axis with +Z upwards since cameras look down the -Z axis with +Y upwards
             zed_prim = self._stage.GetPrimAtPath("/World/Robot/ZED2")            
@@ -144,7 +144,7 @@ class LabRun():
             xformable.AddTranslateOp().Set(Gf.Vec3d([0.128, 0, 0.7])) # Formally 0.4 x
             xformable.AddRotateXZYOp().Set(Gf.Vec3d(0, -90, -89.2))
 
-            #Create left and right stereo cameras
+            # Create left and right stereo cameras
             create_camera(self._stage, "/World/Robot/ZED2", "/CameraLeft", self._camera_k, 
                           self._camera_width, self._camera_height, [0.06, 0, 0], "left")
             create_camera(self._stage, "/World/Robot/ZED2", "/CameraRight", self._camera_k, 
@@ -153,16 +153,14 @@ class LabRun():
                           self._camera_width, self._camera_height, [0., 0, 0])
             
             # Create gaussian noise augmentation
-            def image_gaussian_noise_np(data_in: np.ndarray, kernel_seed, mu: float = 0.0, sigma: float = 25.0, p: float = 0.5):
+            def image_gaussian_noise_np(data_in: np.ndarray, kernel_seed, mu: float = 0.0, sigma: float = 25.0):
                 np.random.seed(kernel_seed)
                 gaussian_noise = np.random.normal(mu, sigma, data_in.shape)
-                #bin_array = (np.random.rand(*data_in.shape) < p).astype(np.uint8)
-                #return np.clip(data_in + (gaussian_noise * bin_array), 0, 255).astype(np.uint8)
                 return np.clip(data_in + gaussian_noise, 0, 255).astype(np.uint8)
             
             gn_augm = rep.annotators.Augmentation.from_function(image_gaussian_noise_np, kernel_seed=123, sigma=0.75)
             
-            #Create render products
+            # Create render products
             rp0 = rep.create.render_product("/World/Robot/ZED2/CameraLeft", resolution=(self._camera_width, self._camera_height))
             rp1 = rep.create.render_product("/World/Robot/ZED2/CameraRight", resolution=(self._camera_width, self._camera_height))
             rp2 = rep.create.render_product("/World/Robot/ZED2/DepthCamera", resolution=(self._camera_width, self._camera_height))
@@ -186,21 +184,10 @@ class LabRun():
             writer.initialize(topicName="depth")
             writer.attach([rp2])
 
-            '''
-            create_camera(self._stage, "/World/Robot/LidarObj", "/Lidar", self._camera_k, self._camera_width, self._camera_height)
-            rotate_camera(self._stage, "/World/Robot/LidarObj/Lidar", 0.0)
-
-            rp2 = rep.create.render_product("/World/Robot/LidarObj/Lidar", resolution=(self._camera_width, self._camera_height))
-
-            #Access the data through annotators
-            self.pointcloud_anno = AnnotatorRegistry.get_annotator("pointcloud")
-            self.pointcloud_anno.attach([rp2])
-            '''
-
-            #Access the data through annotators
+            # Access the data through annotators
             self.rgb_annotators = []
-            #for i, rp in enumerate([rp0, rp1, rp2]):
-            for i, rp in enumerate([rp0]):
+            for i, rp in enumerate([rp0, rp1, rp2]):
+            #for i, rp in enumerate([rp0]):
                 if i == 2:
                     annot = AnnotatorRegistry.get_annotator("distance_to_image_plane")
                 else:
@@ -220,14 +207,16 @@ class LabRun():
 
         if self._isLidar:
             print("> Setting up RTX Lidar Sensor...")
+
+            # Create RTX LiDAR sensor
             _, sensor = omni.kit.commands.execute(
                 "IsaacSensorCreateRtxLidar",
                 path="/RTXLidar",
                 parent="/World/Robot/LidarObj",
                 config="RS-Helios-32-5515",
-                translation=(0.04, 0, 1.1), # Formally 1.05 z 0.14 x
+                translation=(0.04, 0, 1.1),
                 #orientation=Gf.Quatd(0.5, 0.5, -0.5, -0.5),  # Gf.Quatd is w,i,j,k
-                orientation=Gf.Quatd(0.65328, 0.65328, -0.2706, -0.2706),
+                orientation=Gf.Quatd(0.65328, 0.65328, -0.2706, -0.2706), # -90° rotation around Z and Y axis already included
             )
             self.hydra_texture, render_product_path = create_hydra_texture([1, 1], sensor.GetPath().pathString)
 
@@ -235,12 +224,6 @@ class LabRun():
             writer = rep.writers.get("RtxLidar" + "ROS2PublishPointCloud")
             writer.initialize(topicName="point_cloud", frameId="sim_lidar")
             writer.attach([render_product_path])
-
-            if lab_run.DEBUG_LIDAR:
-                enable_extension("omni.isaac.debug_draw")
-                # Create the debug draw pipeline in the post process graph
-                writer = rep.writers.get("RtxLidar" + "DebugDrawPointCloud")
-                writer.attach([render_product_path])
         
             if self._isInterpolate:
                 file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_no_interpolation_pcd", "")
@@ -252,15 +235,9 @@ class LabRun():
             print("> RTX Lidar created")
 
         if self._isPhysXLidar:
-            
             print("> Setting up PhysX Lidar Sensor...")
 
-            #self.lidarObj = UsdGeom.Cylinder.Define(self._stage, "/World/Robot/LidarObj")
-            #self.lidarObj.CreateRadiusAttr(0.05)
-            #self.lidarObj.CreateHeightAttr(0.1)
-            #self.lidarObj.AddTranslateOp().Set((0.14, 0, 1.1))
-
-            # PhysX based LiDAR sensor
+            # Create PhysX based LiDAR sensor
             self.lidarInterface = _range_sensor.acquire_lidar_sensor_interface()
             result, lidarPrim = omni.kit.commands.execute(
                 "RangeSensorCreateLidar",
@@ -279,20 +256,21 @@ class LabRun():
                 yaw_offset=0.0,
                 enable_semantics=True
             )
-            #UsdGeom.XformCommonAPI(lidarPrim).SetTranslate((0.0, 0.0, 0.0))
             lidarPrim.ClearXformOpOrder()
             lidarPrim.AddTranslateOp().Set(Gf.Vec3d(0.04, 0, 1.1))
             lidarPrim.AddRotateXZYOp().Set(Gf.Vec3d(0, 0, 45))
 
+            # Add collision volumes to the cube tower
             cubeprim = self._stage.GetPrimAtPath("/World/CubeTower")
             collisionAPI = UsdPhysics.CollisionAPI.Apply(cubeprim)
+            # Semantics only for labelling data
             #sem = Semantics.SemanticsAPI.Apply(cubeprim, "Semantics")
             #sem.CreateSemanticTypeAttr()
             #sem.CreateSemanticDataAttr()
             #sem.GetSemanticTypeAttr().Set("class")
             #sem.GetSemanticDataAttr().Set("cube")
 
-            #Create pointcloud output directory
+            # Create pointcloud output directory
             if self._isInterpolate:
                 file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_no_interpolation_physx_pcd", "")
             else: 
@@ -331,10 +309,17 @@ class LabRun():
             mtl_primPath = self._stage.GetPrimAtPath(mtl_created_list[-1])
             omni.usd.create_material_input(mtl_primPath, "diffuse_color_constant", Gf.Vec3f(1, 0.58, 0), Sdf.ValueTypeNames.Color3f)
 
+        if lab_run.DEBUG_LIDAR:
+            # Create the debug draw pipeline in the post process graph
+            enable_extension("omni.isaac.debug_draw")
+            writer = rep.writers.get("RtxLidar" + "DebugDrawPointCloud")
+            writer.attach([render_product_path])
+
         print("> Setup done")
     
     def setup_post_load(self):
         print("> Setup post load...")
+        # Add physics callback function
         self._world.add_physics_callback("sim_step", callback_fn=self.physics_step)
         #self._world.play()
         print("> Setup post load done")
@@ -350,57 +335,30 @@ class LabRun():
 
     def get_pointcloud_physx(self, index_step):
         #self._world.pause()
-        #print("World paused")
         pointcloud = self.lidarInterface.get_point_cloud_data("/World/Robot/LidarObj/PhysXLidar")
-        #print("PCD")
-        #semantics = self.lidarInterface.get_semantic_data("/World/ZED2/Lidar")
-        #print(pointcloud.shape)
+        #semantics = self.lidarInterface.get_semantic_data("/World/Robot/LidarObj/PhysXLidar")
         pointcloud = pointcloud.reshape(pointcloud.shape[0]*pointcloud.shape[1], 3)
-        #print(pointcloud.shape)
 
+        # Mask out intial unimportant parts of the resulting point cloud data
         x, y, z = pointcloud[:, 0], pointcloud[:, 1], pointcloud[:, 2]
         mask = (x > -10) & (x < 10) & (y > -10) & (y < 10) & (z > -1)
         pointcloud = pointcloud[mask]
 
-        #self._pointclouds.append(pointcloud)
-
-        #Get transform 
-        #xformable = UsdGeom.Xformable(self._stage.GetPrimAtPath("/World/Robot"))
-        #transform = xformable.GetLocalTransformation()
-        #mat = np.array(transform)
-        #T = np.empty((4, 4))
-        #T[:3, :3] = mat[:3, :3] # Rotation matrix R
-        #T[:3, 3] = mat[3, :3] # translation vector t
-        #T[3, :] = [0, 0, 0, 1] # Homogeneous part
-        #self._trans_mats.append(T)
-
-        #np.append(pointcloud, T[:3, 3]) # Append point from which the scan was made as reference
-
-        # Create thread to save synthetic LiDAR pointcloud data
+        # Create thread to save synthetic PhysX LiDAR pointcloud data
         MyThread = Thread(target=save_pcd, args=(pointcloud, f"{self.dir_name_physx_pcd}/synthetic_{index_step}_physx_pcd.ply"))
         MyThread.start()
 
         #self._world.play()
 
     def get_poincloud(self, index_step):
-        point_cloud = np.array(og.Controller().node("/Render/PostProcess/SDGPipeline/RenderProduct_Isaac_RtxSensorCpuIsaacComputeRTXLidarPointCloud").get_attribute("outputs:pointCloudData").get())
-        
-        #x, y, z = point_cloud[:, 0], point_cloud[:, 1], point_cloud[:, 2]
-        #mask = (x > -10) & (x < 10) & (y > -10) & (y < 10) & (z > -1)
-        #point_cloud = point_cloud[mask]
-
-        #print(point_cloud)
+        pointcloud = np.array(og.Controller().node("/Render/PostProcess/SDGPipeline/RenderProduct_Isaac_RtxSensorCpuIsaacComputeRTXLidarPointCloud").get_attribute("outputs:pointCloudData").get())
 
         # Create thread to save synthetic LiDAR pointcloud data
-        MyThread = Thread(target=save_pcd, args=(point_cloud, f"{self.dir_name_pcd}/synthetic_{index_step}_pcd.ply"))
+        MyThread = Thread(target=save_pcd, args=(pointcloud, f"{self.dir_name_pcd}/synthetic_{index_step}_pcd.ply"))
         MyThread.start()
 
-        #if (len(point_cloud) > 1):
-        #    print(point_cloud.shape)
-
     def get_image(self, index_step):
-        #rep.orchestrator.step() self.rgb_annotators
-        # Create thread for each camera annotator to save corresponding synthetic rgb image
+        # Create thread for each camera annotator to save corresponding synthetic rgb or depth image
         for j, rgb_annot in enumerate(self.rgb_annotators):
             if j == 0:
                 file_name = f"{self.dir_name_img}/left_step_{index_step}"
@@ -420,6 +378,7 @@ class LabRun():
             self._world.stop()
 
         elif self._i < len(self._points):
+            # At each physics step, position and orient robot to collect next batch of data
             if self._isStereo or self._isLidar or self._isPhysXLidar:
                 set_pose(self._stage, "/World/Robot", self._points[self._i], self._rotations[self._i])
 
@@ -506,9 +465,9 @@ if __name__ == "__main__":
                      isInterpolate=args.no_interpolation, saveToFile=args.save_to_file)
     lab_run.load_world()
 
-    carb_settings = carb.settings.acquire_settings_interface()
+    # Render settings 
+    #carb_settings = carb.settings.acquire_settings_interface()
     #carb_settings.set("/rtx/hydra/faceCulling/enabled", True)
-    # Medium
     #carb_settings.set("/rtx/reflections/maxReflectionBounces", 3)
     #carb_settings.set("/rtx/post/motionblur/enabled", True)
     #carb_settings.set("/rtx/post/lensFlares/enabled", True)
@@ -521,9 +480,6 @@ if __name__ == "__main__":
         #Take a step in the simulation
         lab_run._world.step(render=True)
         if lab_run._world.is_stopped():
-            END_TIME = time.time()
-            elapsed_time = END_TIME - START_TIME
-            print(f"> Simulation took {elapsed_time:.2f} seconds")
             break
         elif lab_run._world.is_playing():
             #Reset the world
@@ -533,9 +489,4 @@ if __name__ == "__main__":
     print('> Closing ...')
     # cleanup
     simulation_app.close()
-    END_TIME = time.time()
-
-    # Calculate the elapsed time
-    elapsed_time = END_TIME - START_TIME
-    print(f"> Simulation took {elapsed_time:.2f} seconds")
     #main()
