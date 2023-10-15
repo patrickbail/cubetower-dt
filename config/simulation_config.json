@@ -1,19 +1,19 @@
 {
     "Simulation":
     {
-        "Path": "./Isaac-Sim-Playground/config/path_test.json",
-        "Sensor Timestamps": "./Isaac-Sim-Playground/config/sim_img_test.json"
+        "Path": "./cubetower-dt/config/path_test.json",
+        "Sensor Timestamps": "./cubetower-dt/config/sim_img_test.json"
     },
     "Scene":
     {
-        "Stage USD": "omniverse://localhost/Projects/Cubetower-DT/USD-Files/final_cube_setup.usd",
-        "Robot USD": "omniverse://localhost/Projects/Cubetower-DT/USD-Files/robot.usd"
+        "Stage USD": "./cubetower-dt/Assets/USD-Files/final_cube_setup.usd",
+        "Robot USD": "./cubetower-dt/Assets/USD-Files/robot.usd"
     },
     "Sensors":
     {
         "Camera":
         {
-            "USD": "omniverse://localhost/Projects/Cubetower-DT/USD-Files/ZED2_scaled.usd",
+            "USD": "./cubetower-dt/Assets/USD-Files/ZED2_scaled.usd",
             "width": 896,
             "height": 512,
             "Intrinsic": [[364.2601318359375, 0.0, 443.48822021484375],

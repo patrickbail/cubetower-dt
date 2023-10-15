@@ -18,5 +18,5 @@ echo "mirror,MetalsilverMaterial" >> ./kit/rendering-data/RtxSensorMaterialMap.c
 echo "clear_glass,GlassStandardMaterial" >> ./kit/rendering-data/RtxSensorMaterialMap.csv
 
 # Add custom helios config to paths
-directory_path='"${app}/../Isaac-Sim-Playground/config/",'
+directory_path='"${app}/../cubetower-dt/config/",'
 sed -i "58i${directory_path}" ./exts/omni.isaac.sensor/config/extension.toml

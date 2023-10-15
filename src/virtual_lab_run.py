@@ -77,7 +77,7 @@ class LabRun():
     def load_world(self):
         print("> Load simulation...")
         # Load USD stage here
-        #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/final_cube_setup.usd"
+        #file_path = "./cubetower-dt/Assets/USD-Files/final_cube_setup.usd"
         file_path = self._config["Scene"]["Stage USD"]
         open_stage(file_path)
         if World.instance() is None:
@@ -116,7 +116,7 @@ class LabRun():
         self._stage = omni.usd.get_context().get_stage()
 
         # Add USD refrence of robot here
-        #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/robot.usd"
+        #file_path = "./cubetower-dt/Assets/USD-Files/robot.usd"
         file_path = self._config["Scene"]["Robot USD"]
         add_reference_to_stage(
             usd_path=file_path, prim_path="/World"
@@ -130,7 +130,7 @@ class LabRun():
             settings_i.set_bool("/app/omni.graph.scriptnode/opt_in", True)
 
             # Add refrence of ZED 2 camera model 
-            #zed2_asset_path = "./Isaac-Sim-Playground/Assets/USD-Files/ZED2_scaled.usd" # Local version
+            #zed2_asset_path = "./cubetower-dt/Assets/USD-Files/ZED2_scaled.usd" # Local version
             zed2_asset_path = self._config["Sensors"]["Camera"]["USD"]
             add_reference_to_stage(usd_path=zed2_asset_path, prim_path="/World/Robot/ZED2")
             # Rotate ZED 2 camera, make it look down the +X axis with +Z upwards since cameras look down the -Z axis with +Y upwards
@@ -194,9 +194,9 @@ class LabRun():
 
             #Create annotator output directory
             if self._isInterpolate:
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_no_interpolation_image", "")
+                file_path = os.path.join(os.getcwd(), "cubetower-dt", "_out_no_interpolation_image", "")
             else: 
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_image", "")
+                file_path = os.path.join(os.getcwd(), "cubetower-dt", "_out_image", "")
             print(f"Writing annotator data to {file_path}")
             self.dir_name_img = os.path.dirname(file_path)
             os.makedirs(self.dir_name_img, exist_ok=True)
@@ -222,9 +222,9 @@ class LabRun():
             writer.attach([render_product_path])
         
             if self._isInterpolate:
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_no_interpolation_pcd", "")
+                file_path = os.path.join(os.getcwd(), "cubetower-dt", "_out_no_interpolation_pcd", "")
             else: 
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_pcd", "")
+                file_path = os.path.join(os.getcwd(), "cubetower-dt", "_out_pcd", "")
             print(f"Writing pointcloud data to {file_path}")
             self.dir_name_pcd = os.path.dirname(file_path)
             os.makedirs(self.dir_name_pcd, exist_ok=True)
@@ -268,9 +268,9 @@ class LabRun():
 
             # Create pointcloud output directory
             if self._isInterpolate:
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_no_interpolation_physx_pcd", "")
+                file_path = os.path.join(os.getcwd(), "cubetower-dt", "_out_no_interpolation_physx_pcd", "")
             else: 
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_physx_pcd", "")
+                file_path = os.path.join(os.getcwd(), "cubetower-dt", "_out_physx_pcd", "")
             print(f"Writing pointcloud data to {file_path}")
             self.dir_name_physx_pcd = os.path.dirname(file_path)
             os.makedirs(self.dir_name_physx_pcd, exist_ok=True)
@@ -455,7 +455,7 @@ if __name__ == "__main__":
     #print(writer_dict.keys())
 
     # Load config file
-    with open("./Isaac-Sim-Playground/config/simulation_config.json", 'r', encoding='utf-8') as jsonf:
+    with open("./cubetower-dt/config/simulation_config.json", 'r', encoding='utf-8') as jsonf:
         config = json.load(jsonf)
     
     if args.path:

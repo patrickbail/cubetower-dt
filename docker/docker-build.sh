@@ -1,1 +1,0 @@
-sudo docker build -f Dockerfile -t custom-isaac-sim "."

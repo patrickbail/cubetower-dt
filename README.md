@@ -1,4 +1,4 @@
-# Generating Synthetic Data from Real-world Scenarios with Nvidia's Omniverse Isaac Sim
+# Cubetower-DT
 ## Setup
 ### Prerequisites
 * [Omniverse Isaac Sim 2022.2.1](https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/install_workstation.html)
@@ -8,14 +8,16 @@
 * Linux
 ```
 cd ~
-git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-Sim-Playground.git
+git clone https://sci-git.cs.rptu.de/p_noras19/cubetower-dt.git
 ```
 * Windows
 ```
 cd %USERPROFILE%
-git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-Sim-Playground.git
+git clone https://sci-git.cs.rptu.de/p_noras19/cubetower-dt.git
 ```
-
+## Generating Synthetic Data from Real-world Scenarios with Nvidia's Omniverse Isaac Sim
+This project offers means in generating synthetic data from a recreated virtual environment with Isaac Sim. Scene, sensor and trajectory files are already provided to synthetsize camera and LiDAR data from a cubetower setup.\
+However, the project was created to generate synthetic data from any given scenario. This means, by changing the USD scene and robot stage, together with the camera or LiDAR specifications any kind of scenario can be used to synthesize data with Isaac Sim. By additionally using own trajectory and sensor timestamp data (no matter if collected from a real scan or built from scratch), even own paths can be taken and interpolated. 
 ## Further instructions
 1. See [Run Standalone](run_standalone.md) for instructions on how to run and work on standalone Isaac Sim python scripts
 2. See [Virtual Lab Run](virtual_lab_run.md) for instructions on how to simulate a real-world scenario and how to generate synthetic data

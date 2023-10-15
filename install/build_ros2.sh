@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Locate and export the repository location
-REPO_DIR=$(git rev-parse --show-toplevel | grep "Isaac-Sim-Playground")
+REPO_DIR=$(git rev-parse --show-toplevel | grep "cubetower-dt")
 export REPO_DIR
 
 # Check if the repository directory is found
