@@ -42,12 +42,12 @@ copy /Y /I %USERPROFILE%\Isaac-Sim-Playground %ISAAC_SIM%
 ├── config
 ├── docker
 ├── install
-├── isaacGenSynData
-│   └── results
-│       ├── image
-│       └── pcd
+├── src
+├── results
+│   ├── image
+│   └── pcd
 ```
-The `isaacGenSynData` directory contains important scripts, such as: `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and `similarity_eval.py`. The main script to start a simulation within Isaac Sim is done by `virtual_lab_run.py`, while `lab_utility.py` only provides utility functions for the simulation. `parse_bag.py` is explained in more detail in the documentation about [Extratcing Data](extracting_data.md). Finally, `similarity_eval.py` provides means in calculating similarity measurments for synthetic image and point cloud data, in addition with functions to plot the results. The path for some files may need to be modified, depending where data was stored. Extracted similarity measures and plots will be saved under the `results` subdirectory. \
+The `src` directory contains important scripts, such as: `parse_bag.py`, `virtual_lab_run.py`, `lab_utility.py` and `similarity_eval.py`. The main script to start a simulation within Isaac Sim is done by `virtual_lab_run.py`, while `lab_utility.py` only provides utility functions for the simulation. `parse_bag.py` is explained in more detail in the documentation about [Extratcing Data](extracting_data.md). Finally, `similarity_eval.py` provides means in calculating similarity measurments for synthetic image and point cloud data, in addition with functions to plot the results. The path for some files may need to be modified, depending where data was stored. Extracted similarity measures and plots will be saved under the `results` directory. \
 The `config` directory, provides four JSON files `path_test.json`, `sim_img_test.json`, `sim_lidar_test.json` and `lerp_test.json`, for simulating and interpolating trajectory information.  The `path_test.json` is a demonstration of a trajectory file that `virtual_lab_run.py` can receive as an input with the -p flag. `sim_img_test.json`, `sim_lidar_test.json` are both files that recorded timestamps when sensor data was recorded. By providing either of those two files with the flag -s to `virtual_lab_run.py`, missing pose information will be interpolated. In addition, a file `lerp_test.json` is available as a template for testing linear interpolation between two points, if a path is not needed for the simulation. Besides these JSON files, a configuration file `RS-Helios-32-5515.json` exist, specifiyng specifications for our RTX LiDAR sensor. Lastly the `simulation_config.json`, composes important information, like scene and sensor parameters to simulate a given scenario. \
 All used assests can be found in the `Assets` folder, along with images and normal maps. \
 
@@ -56,11 +56,11 @@ Simulating the real-world scenario can be done by running the python script like
 Run a simulation via:
 * Linux
 ```
-./python.sh ./Isaac-Sim-Playground/isaacGenSynData/virtual_lab_run.py [-p] [-s] [-l] [-c]
+./python.sh ./Isaac-Sim-Playground/src/virtual_lab_run.py [-p] [-s] [-l] [-c]
 ```
 * Windows
 ```
-./python.bat .\Isaac-Sim-Playground\isaacGenSynData\virtual_lab_run.py [-p] [-s] [-l] [-c]
+./python.bat .\Isaac-Sim-Playground\src\virtual_lab_run.py [-p] [-s] [-l] [-c]
 ```
 
 Arguments:

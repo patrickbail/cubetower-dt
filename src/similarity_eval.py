@@ -53,7 +53,7 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
     additional_data = []
 
     # Distance data from LiDAR scan neccessary
-    lidar_eval_file = './isaacGenSynData/results/pcd/Pcd_RTX_eval_results.json'
+    lidar_eval_file = './results/pcd/Pcd_RTX_eval_results.json'
     with open(lidar_eval_file, 'r', encoding='utf-8') as jsonf:
         lidar_eval = json.load(jsonf)
 
@@ -66,8 +66,8 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
         if cut_off:
             if cut_off[0] <= i <= cut_off[1]: 
                 continue 
-        real_img = f'./isaacGenSynData/final_cube_scan/raw_rgb/{i+1}_img.png'
-        syn_img = f'./isaacGenSynData/_out_no_interpolation_image/{name}_step_{i}.png'
+        real_img = f'./final_cube_scan/raw_rgb/{i+1}_img.png'
+        syn_img = f'./_out_no_interpolation_image/{name}_step_{i}.png'
         try:
             RI = load_image(real_img)
             SI = load_image(syn_img)
@@ -126,7 +126,7 @@ def measure_img_similarity(name, limit, blur=False, noise=False, toJson=False, o
                  "SSIM": {"Mean SSIM": mean_ssim, "Best value": best_ssim, "values": ssim_vals}}
 
     if toJson:
-        export_to_json(vals_dict, "No_Interpolation_Image_eval_results", "./isaacGenSynData/results/image/")
+        export_to_json(vals_dict, "No_Interpolation_Image_eval_results", "./results/image/")
 
     print(f"Mean RMSE = {mean_rmse}")
     print(f"Mean PSNR = {mean_psnr}")
@@ -287,9 +287,9 @@ def measure_pcd_similarity(limit, noise=False, toJson=False, offset=0, threshold
         if cut_out:
             if i in cut_out:
                 continue
-        real_pcd_file = f'./isaacGenSynData/final_cube_scan/raw_pcd/{i+1}_pcd.ply'
-        #syn_pcd_file = f'./isaacGenSynData/_out_no_interpolation_pcd/synthetic_{i}_pcd.ply' #RTX
-        syn_pcd_file = f'./isaacGenSynData/_out_no_interpolation_physx_pcd/synthetic_{i}_physx_pcd.ply' #PhysX
+        real_pcd_file = f'./final_cube_scan/raw_pcd/{i+1}_pcd.ply'
+        #syn_pcd_file = f'./_out_no_interpolation_pcd/synthetic_{i}_pcd.ply' #RTX
+        syn_pcd_file = f'./_out_no_interpolation_physx_pcd/synthetic_{i}_physx_pcd.ply' #PhysX
         
         real_pcd = o3d.io.read_point_cloud(real_pcd_file)
         syn_pcd = o3d.io.read_point_cloud(syn_pcd_file)
@@ -377,8 +377,8 @@ def measure_pcd_similarity(limit, noise=False, toJson=False, offset=0, threshold
                  "RMSE": {"Mean RMSE": mean_rmse, "Best value": best_rmse, "values": rmse_vals}}
 
     if toJson:
-        #export_to_json(vals_dict, "No_interpolation_Pcd_RTX_eval_results", "./isaacGenSynData/results/pcd/")
-        export_to_json(vals_dict, "No_interpolation_Pcd_PhysX_eval_results", "./isaacGenSynData/results/pcd/")
+        #export_to_json(vals_dict, "No_interpolation_Pcd_RTX_eval_results", "./results/pcd/")
+        export_to_json(vals_dict, "No_interpolation_Pcd_PhysX_eval_results", "./results/pcd/")
 
     print(f"Mean Chamfer = {mean_chamfer}")
     print(f"Mean Hausdorff = {mean_hausdorff}")
@@ -445,7 +445,7 @@ def plot_all_data(file, title, isImage, *metrics):
     fig.suptitle(title, fontsize="x-large")
     # Show the plot
     plt.tight_layout()
-    fig.savefig(f'./isaacGenSynData/results/{title.replace(" ", "_")}.png')
+    fig.savefig(f'./results/{title.replace(" ", "_")}.png')
     plt.show()
 
 def plot_data_timeline(eval_file, isImage, metric, title):
@@ -488,9 +488,9 @@ def plot_data_timeline(eval_file, isImage, metric, title):
     # Show the plot
     plt.tight_layout()
     if isImage:
-        plt.savefig(f'./isaacGenSynData/results/image/figures_no_interpolation/{title.replace(" ", "_")}_{metric}.png', dpi=100)
+        plt.savefig(f'./results/image/figures_no_interpolation/{title.replace(" ", "_")}_{metric}.png', dpi=100)
     else:
-        plt.savefig(f'./isaacGenSynData/results/pcd/figures_no_interpolation/{title.replace(" ", "_")}_{metric}.png', dpi=100)
+        plt.savefig(f'./results/pcd/figures_no_interpolation/{title.replace(" ", "_")}_{metric}.png', dpi=100)
     plt.show()
 
 def plot_box_plot(file, title, *metrics):
@@ -526,14 +526,14 @@ def plot_box_plot(file, title, *metrics):
 
     # Show the plot
     if len(metrics) > 1:
-        fig.savefig(f'./isaacGenSynData/results/{title.replace(" ", "_")}.png')
+        fig.savefig(f'./results/{title.replace(" ", "_")}.png')
     else:
-        fig.savefig(f'./isaacGenSynData/results/{title.replace(" ", "_")}_{metrics[0]}.png')
+        fig.savefig(f'./results/{title.replace(" ", "_")}_{metrics[0]}.png')
     plt.show()
 
 def plot_image_contours(index):
-    real_img = f'./isaacGenSynData/real_data/final_cube_scan/raw_rgb/{index+1}_img.png'
-    syn_img = f'./isaacGenSynData/synthetic_data/_out_image/left_step_{index}.png'
+    real_img = f'./real_data/final_cube_scan/raw_rgb/{index+1}_img.png'
+    syn_img = f'./synthetic_data/_out_image/left_step_{index}.png'
 
     RI = load_image(real_img)
     SI = load_image(syn_img)
@@ -573,7 +573,7 @@ def plot_image_contours(index):
 
     plt.show()
 
-    cv2.imwrite(f'./isaacGenSynData/results/image/real_{index+1}_contour.png', RI) 
-    cv2.imwrite(f'./isaacGenSynData/results/image/syn_{index}_contour.png', SI) 
-    cv2.imwrite(f'./isaacGenSynData/results/image/diff_{index}.png', diff) 
-    cv2.imwrite(f'./isaacGenSynData/results/image/mask_{index}.png', mask)
+    cv2.imwrite(f'./results/image/real_{index+1}_contour.png', RI) 
+    cv2.imwrite(f'./results/image/syn_{index}_contour.png', SI) 
+    cv2.imwrite(f'./results/image/diff_{index}.png', diff) 
+    cv2.imwrite(f'./results/image/mask_{index}.png', mask)

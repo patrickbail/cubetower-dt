@@ -194,9 +194,9 @@ class LabRun():
 
             #Create annotator output directory
             if self._isInterpolate:
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_no_interpolation_image", "")
+                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_no_interpolation_image", "")
             else: 
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_image", "")
+                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_image", "")
             print(f"Writing annotator data to {file_path}")
             self.dir_name_img = os.path.dirname(file_path)
             os.makedirs(self.dir_name_img, exist_ok=True)
@@ -222,9 +222,9 @@ class LabRun():
             writer.attach([render_product_path])
         
             if self._isInterpolate:
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_no_interpolation_pcd", "")
+                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_no_interpolation_pcd", "")
             else: 
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_pcd", "")
+                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_pcd", "")
             print(f"Writing pointcloud data to {file_path}")
             self.dir_name_pcd = os.path.dirname(file_path)
             os.makedirs(self.dir_name_pcd, exist_ok=True)
@@ -268,9 +268,9 @@ class LabRun():
 
             # Create pointcloud output directory
             if self._isInterpolate:
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_no_interpolation_physx_pcd", "")
+                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_no_interpolation_physx_pcd", "")
             else: 
-                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "isaacGenSynData" , "_out_physx_pcd", "")
+                file_path = os.path.join(os.getcwd(), "Isaac-Sim-Playground", "_out_physx_pcd", "")
             print(f"Writing pointcloud data to {file_path}")
             self.dir_name_physx_pcd = os.path.dirname(file_path)
             os.makedirs(self.dir_name_physx_pcd, exist_ok=True)
