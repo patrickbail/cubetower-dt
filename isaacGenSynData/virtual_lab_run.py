@@ -27,6 +27,7 @@ simulation_app = SimulationApp(config)
 
 #python
 import os
+import json
 import argparse
 import numpy as np
 from threading import Thread
@@ -49,7 +50,7 @@ from omni.replicator.core import AnnotatorRegistry
 from pxr import Usd, UsdGeom, Gf, UsdShade, Sdf, Semantics, UsdPhysics
 
 class LabRun():
-    def __init__(self, file_path, file_sensor = None, isLidar = False, isPhysXLidar = False, isStereo = False, 
+    def __init__(self, config, file_path, file_sensor = None, isLidar = False, isPhysXLidar = False, isStereo = False, 
                  isLerp = False, earlyStopping = -1, isInterpolate = True, saveToFile = True) -> None:
         self.DEBUG_CAMERA = False
         self.DEBUG_LIDAR = False
@@ -65,11 +66,10 @@ class LabRun():
         self._saveToFile = saveToFile
         self._isInterpolate = isInterpolate
         self._i = 0 # Time step index
-        self._camera_height = 512
-        self._camera_width = 896
-        self._camera_k = np.array([[364.2601318359375, 0.0, 443.48822021484375],
-                                   [0.0, 370.04205322265625, 252.1682891845703],
-                                   [0.0, 0.0, 1.0]])
+        self._camera_height = config["Sensors"]["Camera"]["height"]
+        self._camera_width = config["Sensors"]["Camera"]["width"]
+        self._camera_k = np.array(config["Sensors"]["Camera"]["Intrinsic"])
+        self._config = config
         self.hydra_texture = None
 
         self._points, self._rotations = load_data(file_path, file_sensor, isLerp, isInterpolate)
@@ -77,8 +77,8 @@ class LabRun():
     def load_world(self):
         print("> Load simulation...")
         # Load USD stage here
-        #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/cube_setup6.usd"
-        file_path = "omniverse://localhost/Users/patrick_n22/USD-Files/cube_setup6.usd" # Nucleus version
+        #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/final_cube_setup.usd"
+        file_path = self._config["Scene"]["Stage USD"]
         open_stage(file_path)
         if World.instance() is None:
             #create_new_stage()
@@ -115,13 +115,9 @@ class LabRun():
         # Get stage of current scene
         self._stage = omni.usd.get_context().get_stage()
 
-        #add_reference_to_stage(
-        #    usd_path="./Isaac-Sim-Playground/Assets/USD-Files/cube_setup5.usd", prim_path="/World"
-        #)
-
         # Add USD refrence of robot here
         #file_path = "./Isaac-Sim-Playground/Assets/USD-Files/robot.usd"
-        file_path = "omniverse://localhost/Users/patrick_n22/USD-Files/robot.usd" # Nucleus version
+        file_path = self._config["Scene"]["Robot USD"]
         add_reference_to_stage(
             usd_path=file_path, prim_path="/World"
         )
@@ -135,7 +131,7 @@ class LabRun():
 
             # Add refrence of ZED 2 camera model 
             #zed2_asset_path = "./Isaac-Sim-Playground/Assets/USD-Files/ZED2_scaled.usd" # Local version
-            zed2_asset_path = "omniverse://localhost/Users/patrick_n22/USD-Files/ZED2_scaled.usd" # Nucleus version
+            zed2_asset_path = self._config["Sensors"]["Camera"]["USD"]
             add_reference_to_stage(usd_path=zed2_asset_path, prim_path="/World/Robot/ZED2")
             # Rotate ZED 2 camera, make it look down the +X axis with +Z upwards since cameras look down the -Z axis with +Y upwards
             zed_prim = self._stage.GetPrimAtPath("/World/Robot/ZED2")            
@@ -213,7 +209,7 @@ class LabRun():
                 "IsaacSensorCreateRtxLidar",
                 path="/RTXLidar",
                 parent="/World/Robot/LidarObj",
-                config="RS-Helios-32-5515",
+                config=self._config["Sensors"]["LiDAR"]["config"],
                 translation=(0.04, 0, 1.1),
                 #orientation=Gf.Quatd(0.5, 0.5, -0.5, -0.5),  # Gf.Quatd is w,i,j,k
                 orientation=Gf.Quatd(0.65328, 0.65328, -0.2706, -0.2706), # -90° rotation around Z and Y axis already included
@@ -413,13 +409,13 @@ class LabRun():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Virtual lab run")
     parser.add_argument(
-        "-p", "--path", required=True, type=str, default=None, help=".json file that specifies the pathmap"
+        "-p", "--path", type=str, default=None, help="Provided .json file that specifies the path, overrides trajectory file in config"
     )
     parser.add_argument(
-        "-s", "--sim_data", type=str, default=None, help="If provided a .json file of recorded image or pointcloud data with timestamps, then interpolate missing poses"
+        "-s", "--sim_data", type=str, default=None, help="If provided a .json file of recorded image or pointcloud data with timestamps, then override sensor timestamps file in config"
     )
     parser.add_argument(
-        "--no_interpolation", default=True, const=False, help="If specified instead of interpolating poses, assign pose of nearest timestamp match"
+        "--no_interpolation", action="store_const", default=True, const=False, help="If specified instead of interpolating poses, assign pose of nearest timestamp match"
     )
     parser.add_argument(
         "--lerp_path", action="store_const", default=False, const=True, help="If specified, a linear interpolation between two poses provided in a .json file will be done"
@@ -444,8 +440,6 @@ if __name__ == "__main__":
     )
     args, unknown_args = parser.parse_known_args()
     print(args)
-    if args.path is None:
-        raise ValueError(f"No path specified via --path argument")
 
     if args.livestream:
         print('> Activate livestream')
@@ -459,9 +453,19 @@ if __name__ == "__main__":
     # Print all available Writers
     #writer_dict = rep.WriterRegistry.get_writers()
     #print(writer_dict.keys())
+
+    # Load config file
+    with open("./Isaac-Sim-Playground/config/simulation_config.json", 'r', encoding='utf-8') as jsonf:
+        config = json.load(jsonf)
     
-    lab_run = LabRun(args.path, args.sim_data, isLidar=args.rtx_lidar, isPhysXLidar=args.physx_lidar, 
-                     isStereo=args.stereo_camera, isLerp=args.lerp_path, earlyStopping=args.early_stopping,
+    if args.path:
+        config["Simulation"]["Path"] = args.path
+    if args.sim_data:
+        config["Simulation"]["Sensor Timestamps"] = args.sim_data
+    
+    lab_run = LabRun(config, config["Simulation"]["Path"], file_sensor=config["Simulation"]["Sensor Timestamps"], 
+                     isLidar=args.rtx_lidar, isPhysXLidar=args.physx_lidar, isStereo=args.stereo_camera,
+                     isLerp=args.lerp_path, earlyStopping=args.early_stopping,
                      isInterpolate=args.no_interpolation, saveToFile=args.save_to_file)
     lab_run.load_world()
 

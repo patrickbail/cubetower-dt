@@ -2,7 +2,6 @@
 ## Setup
 ### Prerequisites
 * [Omniverse Isaac Sim 2022.2.1](https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/install_workstation.html)
-* [Visual Studio Code](https://code.visualstudio.com/) (only needed if working on Isaac sim standalone scritps is required, see instructions below)
 * [ROS 2](https://docs.ros.org/en/foxy/Installation/Alternatives/Ubuntu-Development-Setup.html) and [cv_bridge](https://github.com/ros-perception/vision_opencv/tree/rolling/cv_bridge) (works only on Linux and is only required if extracting and parsing data of ros bags is needed, see instructions bellow)
 
 ### Clone repository
