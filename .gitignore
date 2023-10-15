@@ -1,0 +1,8 @@
+_out*/
+results/
+tests/
+final_cube_scan/
+
+__pycache__/
+.thumbs/
+.vscode/

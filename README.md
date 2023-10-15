@@ -1,64 +1,22 @@
-## 📜 Welcome to Wiki
+# Generating Synthetic Data from Real-world Scenarios with Nvidia's Omniverse Isaac Sim
+## Setup
+### Prerequisites
+* [Omniverse Isaac Sim 2022.2.1](https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/install_workstation.html)
+* [ROS 2](https://docs.ros.org/en/foxy/Installation/Alternatives/Ubuntu-Development-Setup.html) and [cv_bridge](https://github.com/ros-perception/vision_opencv/tree/rolling/cv_bridge) (works only on Linux and is only required if extracting and parsing data of ros bags is needed, see instructions bellow)
 
-This Wiki contains guidelines, tutorials and templates.   
-The content helps in creating and managing your projects  
-by recommending strategies for workflows, documentation, tools and approaches.
+### Clone repository
+* Linux
+```
+cd ~
+git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-Sim-Playground.git
+```
+* Windows
+```
+cd %USERPROFILE%
+git clone https://ifs.dfki.de/umgebungsmodellierung/scene-reconstruction/Isaac-Sim-Playground.git
+```
 
-Feel free to make adjustments to fit the needs of your project.
-
-[TOC]
-
-## 📖 Basic Git Guidelines 
-
-### How to Markdown
-
-Are you new to Markdown.  
-See this external source: [How to Markdown](https://www.markdownguide.org/basic-syntax/)
-
-### Branching
-
-Branching helps a team, to work on different tasks in the various stages of a project.  
-This section summarizes branching methods. See [Branching](branching.md)
-
-### Issues
-
-Issues help to track your work.  
-This section guides issue management and issue life cycles. See [Issues](issues.md)
-
-### Commits & Publishing
-
-When to commit our progress, publish or push them to the remote branch?   
-Which syntax should commits have or how to link commits to an issue?   
-See [Commits](commits.md)
-
-### Labels
-
-Labels help to keep track the status of any issue or pull request.   
-How to create meaningful labels in your project.   
-We propose an labeling method based on the project life cycle. See [Labels](labels.md).
-
-## 📚 Templates
-
-Find some templates to set up best practices easily.
-
-### Readme
-
-Always use a comprehensive README. See [Readme Template](template_readme.md)
-
-## ⚙️ General Internal Infos <a name = "general_infos"></a> 
-
-This section gives overall information on the Smart Factory Git usage.
- 
-### SF Git Structure
-⚠️ Simple structure to be elaborated 
-
-### User & Administration Roles
-See [Roles](rollen.md)
-
-## 💡 Advanced Tools and Practices
-
-### Git-Ignore File
-Gitignore files come useful when you do not want to commit or version certain files or documents,  
-which are rather huge in size or only necessary for the local execution of the project.   
-Use own or prepared `gitignore` files to accomplish this.  
-See [Gitignore File Collection](https://github.com/github/gitignore)
+## Further instructions
+1. See [Run Standalone](run_standalone.md) for instructions on how to run and work on standalone Isaac Sim python scripts
+2. See [Virtual Lab Run](virtual_lab_run.md) for instructions on how to simulate a real-world scenario and how to generate synthetic data
+3. See [Extratcing Data](extracting_data.md) for instructions on how to build ROS2 Foxy on your system and how to extract recorded data

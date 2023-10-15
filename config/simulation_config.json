@@ -1,0 +1,28 @@
+{
+    "Simulation":
+    {
+        "Path": "./Isaac-Sim-Playground/config/path_test.json",
+        "Sensor Timestamps": "./Isaac-Sim-Playground/config/sim_img_test.json"
+    },
+    "Scene":
+    {
+        "Stage USD": "omniverse://localhost/Projects/Cubetower-DT/USD-Files/final_cube_setup.usd",
+        "Robot USD": "omniverse://localhost/Projects/Cubetower-DT/USD-Files/robot.usd"
+    },
+    "Sensors":
+    {
+        "Camera":
+        {
+            "USD": "omniverse://localhost/Projects/Cubetower-DT/USD-Files/ZED2_scaled.usd",
+            "width": 896,
+            "height": 512,
+            "Intrinsic": [[364.2601318359375, 0.0, 443.48822021484375],
+                            [0.0, 370.04205322265625, 252.1682891845703],
+                            [0.0, 0.0, 1.0]]
+        },
+        "LiDAR":
+        {
+            "config": "RS-Helios-32-5515"
+        }
+    }
+}

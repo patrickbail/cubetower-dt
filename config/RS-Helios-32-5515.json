@@ -1,0 +1,56 @@
+{
+    "_comment0": "parameters obtained from https://cdn-reichelt.de/documents/datenblatt/C900/RS-HELIOS_5515_USER_GUIDE_V3.0.1_EN.pdf",
+    "_comment1": "parameters without comments are assumed correct, but will ultimately need checking",
+    "class": "sensor",
+    "type": "lidar",
+    "name": "RS-Helios-32-5515", "_comment2": "RS-Helios-32-5515 configured for standard at 10Hz",
+    "driveWorksId": "GENERIC", "_comment3": "Using generic, because no LidarDWId in drivesim-ov/include/omni/drivesim/sensors/lidar/LidarProfileTypes.h",
+    "profile":
+    {
+        "scanType": "rotary",
+        "intensityProcessing": "normalization",
+        "rayType": "IDEALIZED",
+        "nearRangeM": 0.2, "_comment4": "Range 0.2-150m p.10",
+        "farRangeM": 150.0,
+  
+        "startAzimuthDeg": 0.0, "_comment5": "360° p.10",
+        "endAzimuthDeg": 360.0,
+        "upElevationDeg": 15.0, "_comment6": "-55° up to +15° p.10",
+        "downElevationDeg": -55.0,
+    
+        "rangeResolutionM": 0.0025, "_comment8": "0.25cm, 0.5cm p.19",
+        "rangeAccuracyM": 0.02, "_comment9": "Range Accuracy ±2 cm (standard) p.10",
+
+        "avgPowerW": 0.002,
+        "minReflectance": 0.1, 
+        "minReflectanceRange": 90.0, "_comment10": "90m @10% p.10",
+        "wavelengthNm": 905.0, "_commentA": "905 nm p.10",
+        "pulseTimeNs": 5556, "_commentB": "(55.56μs / 32)*1000ns/μs=1736.25 p.24 (No artifacts with a pulseTimeNs of 5556ns)",
+  
+        "azimuthErrorMean": 0.0,
+        "azimuthErrorStd": 0.015,
+        "elevationErrorMean": 0.0,
+        "elevationErrorStd": 0.0,
+    
+    
+        "reportTypes": "Strongest, First, Last", "_commentC": "p.13",
+        "maxReturns": 3,
+    
+        "scanRatesHz": [10.0, 20.0],
+        "scanRateBaseHz": 60.0, "_commentG": "With a 60Hz scanRateBaseHz the RTX LiDAR shoots pattern all at once",
+    
+        "reportRateBaseHz": 180000, "_commentE": "10Hz * angle (360°)/ horizontal resolution (0.2°) p.10",
+    
+        "numberOfEmitters": 32,
+    
+        "emitters":
+        {
+          "_commentD": "MSOP Packet Time Offset of Exact Laser Point Timing in Single Return, p.25",
+          "azimuthDeg": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+          "elevationDeg": [15.0, 13.0, 11.0, 9.0, 7.0, 5.5, 4.0, 2.67, 1.33, 0.0, -1.33, -2.67, -4.0, -5.33, -6.67, -8.0, -10.0, -16.0, -13.0, -19.0, -22.0, -28.0, -25.0, -31.0, -34.0, -37.0, -40.0, -43.0, -46.0, -49.0, -52.0, -55.0],
+          "fireTimeNs": [0, 1570, 3150, 4720, 6300, 7870, 9450, 1136, 1326, 1517, 1708, 1899, 2056, 2214, 2371, 2529, 2653, 2901, 2777, 3025, 3149, 3398, 3273, 3522, 3646, 3770, 3894, 4018, 4142, 4267, 4391, 4515]
+        },
+    
+        "intensityMappingType": "LINEAR"
+    }
+}
