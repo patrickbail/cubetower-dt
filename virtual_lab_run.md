@@ -52,11 +52,7 @@ All used assests can be found in the `Assets` folder, along with images and norm
 
 ## Start a Virtual Lab Run and generate synthetic data
 Simulating the real-world scenario can be done by running the python script like every other standalone Isaac Sim python script, which was demonstraed in the [Run Standalone](run_standalone.md) section. \
-If it is desired to load all assets from the Nucleus database, then create a `Cubetower-dt` directory manually inside the `Projects` folder and copy over the `Assets` directory into it.
-Replace inside the `simulation_config.json` all USD parameters with:
-```
-omniverse://localhost/Projects/Cubetower-DT/Assets/USD-Files/<file_name>.usd
-```
+Before running the simulation all directories in the `Assets` folder must be inside a local Nucleus database. Create a `Cubetower-dt` directory manually inside the `Projects` folder and copy over the `Assets` directories `Images` and `USD-Files` into it.
 Run a simulation via:
 * Linux
 ```
