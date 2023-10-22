@@ -5,7 +5,7 @@ It is highly recommended to utlize the docker variant, since the workstation app
 Run the following docker command to start the Isaac Sim container with the codebase of this repository:
 ```
 docker run --name isaac-sim --entrypoint bash -it --gpus all -e "ACCEPT_EULA=Y" --rm --network=host \ 
--v ~/Desktop/cubetower-dt:/isaac-sim/cubetower-dt \ 
+-v ~/cubetower-dt:/isaac-sim/cubetower-dt \ 
 -v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache/Kit:rw \
 -v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
 -v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \ 
