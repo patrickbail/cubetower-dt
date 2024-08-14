@@ -8,12 +8,12 @@
 * Linux
 ```
 cd ~
-git clone https://sci-git.cs.rptu.de/p_noras19/cubetower-dt.git
+git clone https://github.com/patrickbail/cubetower-dt.git
 ```
 * Windows
 ```
 cd %USERPROFILE%
-git clone https://sci-git.cs.rptu.de/p_noras19/cubetower-dt.git
+git clone https://github.com/patrickbail/cubetower-dt.git
 ```
 ## Generating Synthetic Data from Real-world Scenarios with Nvidia's Omniverse Isaac Sim
 This project offers means in generating synthetic data from a recreated virtual environment with Isaac Sim. Scene, sensor and trajectory files are already provided to synthetsize camera and LiDAR data from a cubetower setup.\
