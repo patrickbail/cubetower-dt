@@ -1,4 +1,9 @@
 # Cubetower-DT
+## Overview
+### Generating Synthetic Data from Real-world Scenarios with Nvidia's Omniverse Isaac Sim
+This project provides the means to generate synthetic data from a recreated virtual environment using Isaac Sim. Scene, sensor, and trajectory files are already included to synthesize camera and LiDAR data from a cube tower setup, which was created as a digital twin to a real cube tower scenary.\
+The project was developed as part of my undergraduate thesis and is designed to enable the generation of synthetic data for any given scenario. By modifying the USD scene and robot stage, along with the camera or LiDAR specifications, users can simulate a wide range of environments within Isaac Sim.\
+Furthermore, by integrating custom trajectory and sensor timestamp data, whether collected from real-world scans or created from scratch, users can define and interpolate their own paths for data synthesis.
 ## Setup
 ### Prerequisites
 * [Omniverse Isaac Sim 2022.2.1](https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/install_workstation.html)
@@ -14,11 +19,8 @@ git clone https://github.com/patrickbail/cubetower-dt.git
 ```
 cd %USERPROFILE%
 git clone https://github.com/patrickbail/cubetower-dt.git
-```
-## Generating Synthetic Data from Real-world Scenarios with Nvidia's Omniverse Isaac Sim
-This project offers means in generating synthetic data from a recreated virtual environment with Isaac Sim. Scene, sensor and trajectory files are already provided to synthetsize camera and LiDAR data from a cubetower setup.\
-However, the project was created to generate synthetic data from any given scenario. This means, by changing the USD scene and robot stage, together with the camera or LiDAR specifications any kind of scenario can be used to synthesize data with Isaac Sim. By additionally using own trajectory and sensor timestamp data (no matter if collected from a real scan or built from scratch), even own paths can be taken and interpolated. 
+``` 
 ## Further instructions
-1. See [Run Standalone](run_standalone.md) for instructions on how to run and work on standalone Isaac Sim python scripts
-2. See [Virtual Lab Run](virtual_lab_run.md) for instructions on how to simulate a real-world scenario and how to generate synthetic data
-3. See [Extratcing Data](extracting_data.md) for instructions on how to build ROS2 Foxy on your system and how to extract recorded data
+1. See [Virtual Lab Run](virtual_lab_run.md) for instructions on how to simulate a real-world scenario and how to generate synthetic data
+2. See [Extratcing Data](extracting_data.md) for instructions on how to build ROS2 Foxy on your system and how to extract recorded data
+3. See [Run Standalone](run_standalone.md) for instructions on how to run and work on standalone Isaac Sim python scripts
